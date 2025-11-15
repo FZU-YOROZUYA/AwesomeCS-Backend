@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yorozuya.awesomecs.repository.mapper.UsersMapper">
+
+    <resultMap id="BaseResultMap" type="com.yorozuya.awesomecs.model.domain.Users">
+            <id property="id" column="id" />
+            <result property="phone" column="phone" />
+            <result property="nickname" column="nickname" />
+            <result property="avatar" column="avatar" />
+            <result property="bio" column="bio" />
+            <result property="userData" column="user_data" />
+            <result property="status" column="status" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,phone,nickname,avatar,bio,user_data,
+        status,created_at,updated_at
+    </sql>
+</mapper>
