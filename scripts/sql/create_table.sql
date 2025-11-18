@@ -1,3 +1,7 @@
+create database `awesome_cs`;
+
+use `awesome_cs`;
+
 create table awesome_cs.comments
 (
     id         bigint unsigned                    not null

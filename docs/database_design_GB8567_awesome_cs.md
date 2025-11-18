@@ -9,15 +9,13 @@
 ### 背景
 
 1. 待开发数据库名称：`awesome_cs`。
-2. 使用该数据库的软件系统名称：AwesomeCS（包含博客、点赞、评论、付费咨询、模拟面试等模块）。
+2. 使用该数据库的软件系统名称：AwesomeCS（包含博客、点赞、评论、付费咨询、模拟面试、学习路径等模块）。
 3. 项目提出者、用户与部署环境：项目需求方、系统最终用户及将安装该软件和数据库的计算站（开发/测试/生产环境），具体部署由运维团队负责。
 
 ### 定义
 
 - JSON 字段：数据库中以 JSON 类型或文本形式存储的复合数据结构（如 tags、domains、user_data）。
-- relation：咨询关系项（专家发布的可提供咨询的条目）。
-- consultation：咨询会话或订单。
-- mock_interview：模拟面试记录。
+
 
 ### 参考资料
 
@@ -54,7 +52,6 @@
 - 建议 DBMS：MySQL 5.7+ 或 MariaDB 支持 JSON 的版本。
 - 存储引擎：InnoDB。
 - 字符集：utf8mb4。
-- 备份/恢复工具：mysqldump、Percona XtraBackup 等。
 
 ## 结构设计
 
@@ -203,11 +200,11 @@
 - 敏感数据：密码使用不可逆加密存储（bcrypt/argon2）；生产环境启用 TLS 连接。
 - 审计日志：记录支付回调、订单状态变化等关键日志以便追溯。
 
-## 物理设计与索引建议（详细）
+## 物理设计与索引建议
 
 - 引擎：InnoDB
 - 字符集：utf8mb4
-- 索引建议：
+- 索引：
   - posts(user_id), posts(status), posts(created_at)
   - post_likes(post_id), post_likes(user_id)
   - comments(post_id), comments(parent_id)
@@ -215,7 +212,6 @@
   - consultation_messages(consultation_id)
 - tags/domains 查询建议：
   - 使用 JSON 类型并配合 JSON_CONTAINS 查询，或在写入时同步生成标准化字段并为其建立索引
-  - 若频繁模糊搜索，考虑引入搜索引擎（Elasticsearch）
 
 ## 事务与并发控制
 
@@ -229,9 +225,6 @@
 - 数据迁移：使用有序的 SQL 迁移脚本（Flyway 或 Liquibase）。
 - 日志与监控：监控慢查询、连接数、IO、buffer pool 使用率；设置慢查询阈值并优化。
 
-## 数据字典维护建议
-
-- 建议维护机器可读的数据字典（CSV/Excel）包含：表名、字段名、类型、是否主键、是否允许空、默认值、注释、索引、外键说明。
 
 ## 安全与保密（补充）
 

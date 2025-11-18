@@ -1,4 +1,4 @@
-package com.yorozuya.awesomecs.comon.config;
+package com.yorozuya.awesomecs.config;
 
 import cn.dev33.satoken.interceptor.SaInterceptor;
 import org.springframework.context.annotation.Configuration;
