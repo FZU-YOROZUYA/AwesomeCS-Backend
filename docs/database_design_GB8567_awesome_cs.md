@@ -96,103 +96,105 @@
 
 ### 数据字典设计（概要）
 
-以下为主要表的字段说明（精简版）：
+以下为主要表的字段说明：
 
 - users
 
-  - id BIGINT PK
-  - phone VARCHAR(20) UNIQUE
-  - nickname VARCHAR(50) UNIQUE
-  - password VARCHAR(1024)（加密存储，例如 bcrypt/argon2）
-  - avatar VARCHAR(255)
-  - bio VARCHAR(500)
-  - user_data JSON
-  - status TINYINT DEFAULT 1
-  - created_at, updated_at
+  - id BIGINT PK （用户 id 主键）
+  - phone VARCHAR(20) UNIQUE （用户手机号，唯一）
+  - nickname VARCHAR(50) UNIQUE （用户昵称，唯一）
+  - password VARCHAR(1024) （用户密码，使用 bcrypt/argon2 等不可逆加密存储）
+  - avatar VARCHAR(255) （用户头像 URL）
+  - bio VARCHAR(500) （用户个人简介）
+  - user_data JSON （用户相关复合信息，如掌握的技术栈，JSON 格式）
+  - status TINYINT DEFAULT 1 （用户状态，1-正常，0-禁用）
+  - created_at DATETIME, updated_at DATETIME （创建与更新时间）
 
 - posts
 
-  - id BIGINT PK
-  - user_id BIGINT
-  - category VARCHAR(64)
-  - tags JSON
-  - title VARCHAR(200)
-  - content LONGTEXT
-  - summary VARCHAR(500)
-  - status TINYINT DEFAULT 0
-  - view_count INT DEFAULT 0
-  - created_at, updated_at
-  - 索引建议：user_id、status；若需全文搜索，使用 FULLTEXT 或 Elasticsearch
+  - id BIGINT PK （博客 id 主键）
+  - user_id BIGINT （发布用户 id，外键 -> users.id）
+  - category VARCHAR(64) （文章分类）
+  - tags JSON （标签数组，JSON 格式）
+  - title VARCHAR(200) （文章标题）
+  - content LONGTEXT （文章内容，可能为 Markdown/HTML）
+  - summary VARCHAR(500) （文章摘要）
+  - status TINYINT DEFAULT 0 （文章状态，0-草稿，1-已发布，2-归档）
+  - view_count INT DEFAULT 0 （浏览量）
+  - created_at DATETIME, updated_at DATETIME （创建/更新时间）
 
 - post_likes
 
-  - id BIGINT PK
-  - user_id BIGINT
-  - post_id BIGINT
-  - created_at
+  - id BIGINT PK （点赞记录 id）
+  - user_id BIGINT （点赞用户 id，外键 -> users.id）
+  - post_id BIGINT （被点赞文章 id，外键 -> posts.id）
+  - created_at DATETIME （点赞时间）
   - 索引：(post_id)、(user_id)
 
 - comments
 
-  - id BIGINT PK
-  - post_id BIGINT
-  - user_id BIGINT
-  - parent_id BIGINT NULL
-  - content TEXT
-  - created_at
+  - id BIGINT PK （评论 id）
+  - post_id BIGINT （所属文章 id，外键 -> posts.id）
+  - user_id BIGINT （评论用户 id，外键 -> users.id）
+  - parent_id BIGINT NULL （父评论 id，若为 NULL 则为顶级评论）
+  - content TEXT （评论内容）
+  - created_at DATETIME （评论时间）
 
 - consultation_relation
 
-  - id BIGINT PK
-  - user_id BIGINT NOT NULL
-  - price DOUBLE NOT NULL
-  - domains VARCHAR(1024) 或 JSON
-  - created_at
+  - id BIGINT PK （咨询服务项 id）
+  - user_id BIGINT NOT NULL （发布者/专家 id，外键 -> users.id）
+  - price DECIMAL(10,2) NOT NULL （单次咨询价格）
+  - domains VARCHAR(1024) 或 JSON （服务领域或技能标签）
+  - description VARCHAR(1000) NULL （服务描述/说明，可选）
+  - created_at DATETIME （创建时间）
 
 - consultations
 
-  - id BIGINT PK
-  - expert_id BIGINT
-  - seeker_id BIGINT
-  - status TINYINT DEFAULT 0
-  - created_at
+  - id BIGINT PK （咨询会话/订单 id）
+  - expert_id BIGINT （专家用户 id，外键 -> users.id）
+  - seeker_id BIGINT （求助者/下单用户 id，外键 -> users.id）
+  - status TINYINT DEFAULT 0 （会话状态，例：0-pending，1-active，2-completed，3-cancelled）
+  - scheduled_at DATETIME NULL （预约/开始时间，可选）
+  - created_at DATETIME （创建时间）
   - 索引：expert_id、seeker_id、status
 
 - consultation_payments
 
-  - id BIGINT PK AUTO_INC
-  - consultation_id BIGINT
-  - amount DECIMAL(10,2)
-  - status TINYINT DEFAULT 0 (0-pending,1-success,2-failed)
-  - provider VARCHAR(64)
-  - transaction_id VARCHAR(128)
-  - created_at
-  - 唯一约束：UNIQUE(provider, transaction_id)
+  - id BIGINT PK AUTO_INCREMENT （支付记录 id）
+  - consultation_id BIGINT （关联咨询会话 id，外键 -> consultations.id）
+  - amount DECIMAL(10,2) （支付金额）
+  - status TINYINT DEFAULT 0 （支付状态：0-pending，1-success，2-failed）
+  - provider VARCHAR(64) （支付提供商，如 alipay/wechat/stripe）
+  - transaction_id VARCHAR(128) （第三方交易号）
+  - created_at DATETIME （支付时间/记录创建时间）
+  - 唯一约束：UNIQUE(provider, transaction_id) （保证回调幂等）
 
 - consultation_messages
 
-  - id BIGINT PK AUTO_INC
-  - consultation_id BIGINT
-  - sender_id BIGINT
-  - content TEXT
-  - message_type VARCHAR(32) DEFAULT 'text'
-  - created_at
+  - id BIGINT PK AUTO_INCREMENT （消息 id）
+  - consultation_id BIGINT （所属咨询会话 id，外键 -> consultations.id）
+  - sender_id BIGINT （发送者 id，外键 -> users.id）
+  - content TEXT （消息内容）
+  - message_type VARCHAR(32) DEFAULT 'text' （消息类型，如 text/image/system 等）
+  - created_at DATETIME （消息时间）
   - 索引：consultation_id
 
 - mock_interviews
 
-  - id BIGINT PK
-  - user_id BIGINT
-  - domain VARCHAR(32)
-  - style VARCHAR(32)
-  - recording_url VARCHAR(1024)
-  - created_at
+  - id BIGINT PK （模拟面试记录 id）
+  - user_id BIGINT （参加用户 id，外键 -> users.id）
+  - domain VARCHAR(32) （面试领域/方向）
+  - style VARCHAR(32) （面试风格，如 behavior/technical）
+  - recording_url VARCHAR(1024) （录音/视频存储地址）
+  - score INT NULL （面试评分，可选）
+  - created_at DATETIME （创建时间）
 
 - study_path_recommendations
-  - id BIGINT PK
-  - user_id BIGINT
-  - content TEXT
-  - created_at
+  - id BIGINT PK （推荐记录 id）
+  - user_id BIGINT （关联用户 id，外键 -> users.id）
+  - content TEXT （推荐内容）
+  - created_at DATETIME （创建时间）
 
 ### 安全保密设计
 
