@@ -37,6 +37,7 @@ public class ConsultationsController {
     }
 
     @PostMapping("/{id}/pay-callback")
+    @SaCheckLogin
     public Result<Object> payCallback(@PathVariable Long id, @RequestParam("transaction_id") String transactionId) {
         try {
             consultationsService.payCallback(id, transactionId);

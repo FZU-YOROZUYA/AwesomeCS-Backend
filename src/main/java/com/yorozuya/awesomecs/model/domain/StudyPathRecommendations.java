@@ -15,26 +15,10 @@ import lombok.Data;
 @TableName(value ="study_path_recommendations")
 @Data
 public class StudyPathRecommendations implements Serializable {
-    /**
-     * 
-     */
     @TableId
     private Long id;
-
-    /**
-     * 
-     */
     private Long userId;
-
-    /**
-     * AI推荐的学习内容
-     */
     private String content;
-
-
-    /**
-     * 
-     */
     private Date createdAt;
 
     @TableField(exist = false)

@@ -15,52 +15,16 @@ import lombok.Data;
 @TableName(value ="users")
 @Data
 public class Users implements Serializable {
-    /**
-     * 
-     */
     @TableId
     private Long id;
-
-    /**
-     * 手机号（唯一标识）
-     */
     private String phone;
-
-    /**
-     * 
-     */
     private String nickname;
-
     private String password;
-
-    /**
-     * 用户头像URL
-     */
     private String avatar;
-
-    /**
-     * 个人简介
-     */
     private String bio;
-
-    /**
-     * 存储兴趣、技术栈等扩展信息
-     */
     private Object userData;
-
-    /**
-     * 账户状态：1-正常，0-禁用
-     */
     private Integer status;
-
-    /**
-     * 
-     */
     private Date createdAt;
-
-    /**
-     * 
-     */
     private Date updatedAt;
 
     @TableField(exist = false)
