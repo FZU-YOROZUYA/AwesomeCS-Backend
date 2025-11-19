@@ -1,14 +1,14 @@
-package com.yorozuya.awesomecs.ws_config;
+package com.yorozuya.awesomecs.ws;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.google.gson.Gson;
 import com.yorozuya.awesomecs.model.domain.ConsultationMessages;
 import com.yorozuya.awesomecs.model.domain.Consultations;
 import com.yorozuya.awesomecs.service.ConsultationMessagesService;
-import com.yorozuya.awesomecs.service.ConsultationsService;
 import com.yorozuya.awesomecs.service.impl.ConsultationsServiceImpl;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -37,27 +37,21 @@ public class ConsultationWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        log.info("[consultation]: afterConnectionEstablished");
         String token = getTokenFromSession(session);
         if (token == null) {
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Invalid token"));
-            return;
         }
         String sid = (String)StpUtil.getLoginIdByToken(token);
-        Long userId;
+        Long userId = 0L;
         if (sid == null || sid.isEmpty() || (userId = Long.parseLong(sid)) <= 0) {
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Invalid token"));
-            return;
         }
-        log.info("[consultation]: userId is {}", userId);
-        log.info("[consultation]: success in get token");
         Long consultationId = getConsultationIdFromSession(session);
 
         if (consultationId == null) {
             session.close(CloseStatus.BAD_DATA.withReason("Missing consultationId"));
             return;
         }
-        log.info("[consultation]: success in get consultationId");
         // 验证用户是否参与此咨询
         Consultations consultation = consultationsService.getById(consultationId);
         if (consultation == null
@@ -65,14 +59,11 @@ public class ConsultationWebSocketHandler extends TextWebSocketHandler {
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Not authorized for this consultation"));
             return;
         }
-        log.info("[consultation]: success in get consultation");
         sessions.computeIfAbsent(consultationId, k -> new ConcurrentHashMap<>()).put(userId, session);
-        log.info("User {} connected to consultation {}", userId, consultationId);
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        log.info("[ConsultationWebSocketHandler]: handleTextMessage");
+    protected void handleTextMessage(@NotNull WebSocketSession session, @NotNull TextMessage message) throws Exception {
         String token = getTokenFromSession(session);
         if (token == null) {
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Invalid token"));

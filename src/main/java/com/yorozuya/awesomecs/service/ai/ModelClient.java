@@ -10,7 +10,11 @@ import cn.hutool.json.JSONObject;
 import com.google.gson.Gson;
 import com.yorozuya.awesomecs.comon.Constants;
 import com.yorozuya.awesomecs.comon.exception.BusinessException;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.deepseek.DeepSeekChatModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -35,7 +39,7 @@ public class ModelClient {
     private static final String CONTENT_TYPE = "application/json";
 
 
-    private Map<String, List<Message>> userHistory = new ConcurrentHashMap<>();
+    private static ChatMemory chatMemory = MessageWindowChatMemory.builder().maxMessages(1024).build();
 
     @Autowired
     public ModelClient(DeepSeekChatModel chatModel) {
@@ -43,11 +47,15 @@ public class ModelClient {
     }
 
 
-    public String chat(String text){
+    public String chat(String text, Long userId) {
+
+        chatModel.call(new Prompt(
+
+        ));
         return "";
     }
 
-    public static String audio2Text(InputStream stream, Long userId) throws IOException {
+    public String audio2Text(InputStream stream, Long userId) throws IOException {
         Recognition recognizer = new Recognition();
         String tmpFileName = userId + UUID.randomUUID().toString();
         Files.copy(stream, Paths.get(tmpFileName), StandardCopyOption.REPLACE_EXISTING);
@@ -65,7 +73,7 @@ public class ModelClient {
 
     
 
-    public static boolean textToSpeech(String text) throws Exception {
+    public byte[] textToSpeech(String text) throws Exception {
         Map<String, Object> requestParams = new HashMap<>();
         requestParams.put("model", "speech-2.6-hd");
         requestParams.put("text", text);
@@ -110,22 +118,7 @@ public class ModelClient {
             throw new BusinessException(Constants.ResponseCode.AUDIO_CHANGE_SERVICE_FAIL);
         }
 
-        try (FileOutputStream fos = new FileOutputStream("./test.wav")) {
-            fos.write(audioBytes);
-        }
-
-        JSONObject extraInfo = jsonResponse.getJSONObject("extra_info");
-        if (extraInfo != null) {
-            System.out.println("音频信息: ");
-            System.out.println("  时长: " + extraInfo.getInt("audio_length") + "ms");
-            System.out.println("  大小: " + extraInfo.getInt("audio_size") + "字节");
-            System.out.println("  采样率: " + extraInfo.getInt("audio_sample_rate") + "Hz");
-            System.out.println("  格式: " + extraInfo.getStr("audio_format"));
-        }
-
-        System.out.println("追踪ID: " + jsonResponse.getStr("trace_id"));
-        System.exit(0);
-        return false;
+       return audioBytes;
     }
 
 

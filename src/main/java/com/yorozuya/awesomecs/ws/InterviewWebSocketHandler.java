@@ -1,7 +1,9 @@
-package com.yorozuya.awesomecs.ws_config;
+package com.yorozuya.awesomecs.ws;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.google.gson.Gson;
+import com.yorozuya.awesomecs.service.ai.ModelClient;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.BinaryMessage;
@@ -10,6 +12,8 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.BinaryWebSocketHandler;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +21,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Component
 public class InterviewWebSocketHandler extends BinaryWebSocketHandler {
+
+    @Resource
+    private ModelClient  modelClient;
 
     private final Gson gson = new Gson();
 
@@ -48,14 +55,15 @@ public class InterviewWebSocketHandler extends BinaryWebSocketHandler {
         byte[] audioData = new byte[buffer.remaining()];
         buffer.get(audioData);
 
-        try {
-
-            // TODO
-            session.sendMessage(null);
+        try
+        {
+            String input = modelClient.audio2Text(new ByteArrayInputStream(audioData), userId);
+            String answer = modelClient.chat(input, userId);
+            byte[] rst = modelClient.textToSpeech(answer);
+            session.sendMessage(new BinaryMessage(rst));
 
         } catch (Exception e) {
             log.error("Error processing interview message for user {}", userId, e);
-            // 可以发送错误消息给前端
             session.sendMessage(new TextMessage("{\"error\": \"Processing failed\"}"));
         }
     }
