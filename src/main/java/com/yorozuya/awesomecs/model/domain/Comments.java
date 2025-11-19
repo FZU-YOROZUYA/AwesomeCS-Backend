@@ -15,35 +15,12 @@ import lombok.Data;
 @TableName(value ="comments")
 @Data
 public class Comments implements Serializable {
-    /**
-     * 
-     */
     @TableId
     private Long id;
-
-    /**
-     * 
-     */
     private Long postId;
-
-    /**
-     * 
-     */
     private Long userId;
-
-    /**
-     * 父评论ID，用于实现回复功能
-     */
     private Long parentId;
-
-    /**
-     * 
-     */
     private String content;
-
-    /**
-     * 
-     */
     private Date createdAt;
 
     @TableField(exist = false)

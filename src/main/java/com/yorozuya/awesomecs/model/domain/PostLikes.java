@@ -15,25 +15,10 @@ import lombok.Data;
 @TableName(value ="post_likes")
 @Data
 public class PostLikes implements Serializable {
-    /**
-     * 
-     */
     @TableId
     private Long id;
-
-    /**
-     * 
-     */
     private Long userId;
-
-    /**
-     * 
-     */
     private Long postId;
-
-    /**
-     * 
-     */
     private Date createdAt;
 
     @TableField(exist = false)
