@@ -96,7 +96,6 @@ public class ConsultationWebSocketHandler extends TextWebSocketHandler {
         msg.setConsultationId(consultationId);
         msg.setSenderId(userId);
         msg.setContent(content);
-        msg.setCreatedAt(new Date());
         consultationMessagesService.save(msg);
 
         // 广播消息给咨询中的其他用户

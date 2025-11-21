@@ -3,22 +3,23 @@ package com.yorozuya.awesomecs.controller;
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.stp.StpUtil;
 import com.yorozuya.awesomecs.comon.Result;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.yorozuya.awesomecs.model.request.CreateInterviewRequest;
+import jakarta.annotation.Resource;
+import org.springframework.web.bind.annotation.*;
+import com.yorozuya.awesomecs.service.InterviewService;
 
 @RestController
 @RequestMapping("/api/interview")
 public class InterviewController {
 
-    @GetMapping("/ws-token")
-    @SaCheckLogin
-    public Result<String> getWsToken() {
-        // 生成 WebSocket 连接 token
-        String token = StpUtil.getTokenValue();
-        return Result.buildSuccessResult(token);
-    }
+    @Resource
+    private InterviewService interviewService;
 
-    // TODO: 添加其他面试相关的 REST 接口
-    // 例如：开始面试、结束面试、获取面试历史等
+    @PostMapping("/create_interview")
+    @SaCheckLogin
+    public Result<Long> createInterview(@RequestBody CreateInterviewRequest createInterviewRequest){
+        long userId = StpUtil.getLoginIdAsLong();
+        Long id = interviewService.createInterview(createInterviewRequest, userId);
+        return Result.buildSuccessResult(id);
+    }
 }
