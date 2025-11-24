@@ -39,7 +39,7 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
-import java.util.ArrayList;
+import java.util.Base64;
 
 @Component
 @Slf4j
@@ -105,7 +105,7 @@ public class ModelClient {
     }
 
 
-    public byte[] textToSpeech(String text) throws Exception {
+    public String textToSpeech(String text) throws Exception {
         Map<String, Object> requestParams = new HashMap<>();
         requestParams.put("model", "speech-2.6-hd");
         requestParams.put("text", text);
@@ -155,7 +155,9 @@ public class ModelClient {
             throw new BusinessException(Constants.ResponseCode.AUDIO_CHANGE_SERVICE_FAIL);
         }
 
-       return audioBytes;
+        // 将字节数组编码为 base64 字符串
+        String base64Audio = Base64.getEncoder().encodeToString(audioBytes);
+        return base64Audio;
     }
 
 

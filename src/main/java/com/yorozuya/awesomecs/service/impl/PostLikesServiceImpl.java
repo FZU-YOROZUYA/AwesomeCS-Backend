@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yorozuya.awesomecs.model.domain.PostLikes;
 import com.yorozuya.awesomecs.repository.mapper.PostLikesMapper;
 import com.yorozuya.awesomecs.service.PostLikesService;
+import com.yorozuya.awesomecs.repository.redis.RedisUtil;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,11 @@ public class PostLikesServiceImpl extends ServiceImpl<PostLikesMapper, PostLikes
     @Resource
     private PostLikesMapper postLikesMapper;
 
+    @Resource
+    private RedisUtil redisUtil;
+
+    private static final String POST_LIKE_COUNT_KEY = "post:likes:count:";
+
     @Override
     @Transactional
     public Map<String, Object> toggleLike(Long userId, Long postId) {
@@ -36,11 +42,27 @@ public class PostLikesServiceImpl extends ServiceImpl<PostLikesMapper, PostLikes
         PostLikes one = postLikesMapper.selectOne(wrapper);
 
         Map<String, Object> rst = new HashMap<>();
+        String redisKey = POST_LIKE_COUNT_KEY + postId;
+
         if (one != null) {
             // 已点赞 -> 取消（只操作 post_likes 表）
             postLikesMapper.deleteById(one.getId());
-            int likeCount = Math.toIntExact(
-                    postLikesMapper.selectCount(new LambdaQueryWrapper<PostLikes>().eq(PostLikes::getPostId, postId)));
+            
+            // 更新 Redis
+            if (redisUtil.hasKey(redisKey)) {
+                redisUtil.decr(redisKey, 1);
+            }
+            
+            // 为了保证返回的 count 准确，如果 redis 没 key，就查库并 set
+            int likeCount;
+            if (redisUtil.hasKey(redisKey)) {
+                likeCount = (int) redisUtil.get(redisKey);
+            } else {
+                likeCount = Math.toIntExact(
+                        postLikesMapper.selectCount(new LambdaQueryWrapper<PostLikes>().eq(PostLikes::getPostId, postId)));
+                redisUtil.set(redisKey, likeCount);
+            }
+
             rst.put("action", "cancelled");
             rst.put("newLikeCount", likeCount);
             return rst;
@@ -49,8 +71,21 @@ public class PostLikesServiceImpl extends ServiceImpl<PostLikesMapper, PostLikes
             entity.setUserId(userId);
             entity.setPostId(postId);
             postLikesMapper.insert(entity);
-            int likeCount = Math.toIntExact(
-                    postLikesMapper.selectCount(new LambdaQueryWrapper<PostLikes>().eq(PostLikes::getPostId, postId)));
+            
+            // 更新 Redis
+            if (redisUtil.hasKey(redisKey)) {
+                redisUtil.incr(redisKey, 1);
+            }
+
+            int likeCount;
+            if (redisUtil.hasKey(redisKey)) {
+                likeCount = (int) redisUtil.get(redisKey);
+            } else {
+                likeCount = Math.toIntExact(
+                        postLikesMapper.selectCount(new LambdaQueryWrapper<PostLikes>().eq(PostLikes::getPostId, postId)));
+                redisUtil.set(redisKey, likeCount);
+            }
+
             rst.put("action", "liked");
             rst.put("newLikeCount", likeCount);
             return rst;
@@ -68,9 +103,17 @@ public class PostLikesServiceImpl extends ServiceImpl<PostLikesMapper, PostLikes
 
     @Override
     public int countLikes(Long postId) {
+        String redisKey = POST_LIKE_COUNT_KEY + postId;
+        if (redisUtil.hasKey(redisKey)) {
+            return (int) redisUtil.get(redisKey);
+        }
+        
         LambdaQueryWrapper<PostLikes> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(PostLikes::getPostId, postId);
-        return Math.toIntExact(count(wrapper));
+        int count = Math.toIntExact(count(wrapper));
+        
+        redisUtil.set(redisKey, count);
+        return count;
     }
 
 }

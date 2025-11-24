@@ -7,10 +7,13 @@ import com.yorozuya.awesomecs.service.StudyPathRecommendationsService;
 import com.yorozuya.awesomecs.service.ai.Tools;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import com.yorozuya.awesomecs.model.response.ChatMessageResponse;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -19,6 +22,7 @@ import org.springframework.ai.deepseek.DeepSeekChatModel;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,11 +53,14 @@ public class StudyPathRecommendationsServiceImpl extends ServiceImpl<StudyPathRe
         String sUserId = String.valueOf(userId);
         List<Message> messages = chatMemory.get(sUserId);
         if (messages.isEmpty()) {
-            chatMemory.add(sUserId, new SystemMessage(SYS_PROMPT));
+            String userInfo = "用户的 id 为 " + sUserId;
+            chatMemory.add(sUserId, new SystemMessage(SYS_PROMPT + userInfo));
         }
-        chatMemory.add(sUserId, new UserMessage(sUserId));
+        ChatClient chatClient = ChatClient.builder(chatModel)
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).conversationId(sUserId).build())  // 添加 advisor 来自动处理内存
+                .build();
 
-        return ChatClient.create(chatModel)
+        Flux<String> rst = chatClient
                 .prompt(new Prompt(
                         chatMemory.get(sUserId)
                 ))
@@ -61,6 +68,8 @@ public class StudyPathRecommendationsServiceImpl extends ServiceImpl<StudyPathRe
                 .toolContext(Map.of("userId", sUserId))
                 .stream()
                 .content();
+
+        return rst;
     }
 
 
@@ -68,6 +77,40 @@ public class StudyPathRecommendationsServiceImpl extends ServiceImpl<StudyPathRe
     public boolean cleanChatMem(Long userId) {
         chatMemory.clear(String.valueOf(userId));
         return true;
+    }
+
+    @Override
+    public List<String> getChatHistory(Long userId) {
+        String sUserId = String.valueOf(userId);
+        List<Message> messages = chatMemory.get(sUserId);
+        List<String> history = new ArrayList<>();
+        for (Message message : messages) {
+            if (!(message instanceof SystemMessage)) {
+                if (message instanceof UserMessage) {
+                    history.add("User: " + message.getText());
+                } else if (message instanceof AssistantMessage) {
+                    history.add("Assistant: " + message.getText());
+                }
+            }
+        }
+        return history;
+    }
+
+    @Override
+    public List<ChatMessageResponse> getChatHistoryDetailed(Long userId) {
+        String sUserId = String.valueOf(userId);
+        List<Message> messages = chatMemory.get(sUserId);
+        List<ChatMessageResponse> history = new ArrayList<>();
+        for (Message message : messages) {
+            if (!(message instanceof SystemMessage)) {
+                if (message instanceof UserMessage) {
+                    history.add(new ChatMessageResponse("user", message.getText()));
+                } else if (message instanceof AssistantMessage) {
+                    history.add(new ChatMessageResponse("assistant", message.getText()));
+                }
+            }
+        }
+        return history;
     }
 
 }

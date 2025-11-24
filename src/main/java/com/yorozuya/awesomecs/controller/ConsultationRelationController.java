@@ -6,10 +6,12 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.yorozuya.awesomecs.comon.Result;
 import com.yorozuya.awesomecs.model.domain.ConsultationRelation;
+import com.yorozuya.awesomecs.model.domain.Users;
 import com.yorozuya.awesomecs.model.request.CreateConsultationRelationRequest;
 import com.yorozuya.awesomecs.model.request.UpdateConsultationRelationRequest;
 import com.yorozuya.awesomecs.model.response.ConsultationRelationResponse;
 import com.yorozuya.awesomecs.service.ConsultationRelationService;
+import com.yorozuya.awesomecs.service.UsersService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +24,9 @@ public class ConsultationRelationController {
 
     @Resource
     private ConsultationRelationService consultationRelationService;
+
+    @Resource
+    private UsersService usersService;
 
     @PostMapping
     @SaCheckLogin
@@ -77,6 +82,13 @@ public class ConsultationRelationController {
             response.setDomains(domainsList);
         }
         response.setCreatedAt(relation.getCreatedAt());
+
+        // 查询用户头像
+        Users user = usersService.getById(relation.getUserId());
+        if (user != null) {
+            response.setAvatarUrl(user.getAvatar());
+        }
+
         return response;
     }
 }

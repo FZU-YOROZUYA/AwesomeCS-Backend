@@ -20,8 +20,8 @@ import org.springframework.web.socket.handler.BinaryWebSocketHandler;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
+import java.util.Base64;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -87,7 +87,8 @@ public class InterviewWebSocketHandler extends BinaryWebSocketHandler {
             MockInterviews interview = (MockInterviews) session.getAttributes().get("interview");
 
             String answer = modelClient.chat(chatMemory.get(String.valueOf(interview.getId())), input, userId);
-            byte[] rst = modelClient.textToSpeech(answer);
+            String base64Audio = modelClient.textToSpeech(answer);
+            byte[] rst = Base64.getDecoder().decode(base64Audio);
             session.sendMessage(new BinaryMessage(rst));
 
         } catch (Exception e) {
