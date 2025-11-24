@@ -9,15 +9,13 @@
 ### 背景
 
 1. 待开发数据库名称：`awesome_cs`。
-2. 使用该数据库的软件系统名称：AwesomeCS（包含博客、点赞、评论、付费咨询、模拟面试等模块）。
+2. 使用该数据库的软件系统名称：AwesomeCS（包含博客、点赞、评论、付费咨询、模拟面试、学习路径等模块）。
 3. 项目提出者、用户与部署环境：项目需求方、系统最终用户及将安装该软件和数据库的计算站（开发/测试/生产环境），具体部署由运维团队负责。
 
 ### 定义
 
 - JSON 字段：数据库中以 JSON 类型或文本形式存储的复合数据结构（如 tags、domains、user_data）。
-- relation：咨询关系项（专家发布的可提供咨询的条目）。
-- consultation：咨询会话或订单。
-- mock_interview：模拟面试记录。
+
 
 ### 参考资料
 
@@ -54,7 +52,6 @@
 - 建议 DBMS：MySQL 5.7+ 或 MariaDB 支持 JSON 的版本。
 - 存储引擎：InnoDB。
 - 字符集：utf8mb4。
-- 备份/恢复工具：mysqldump、Percona XtraBackup 等。
 
 ## 结构设计
 
@@ -99,103 +96,105 @@
 
 ### 数据字典设计（概要）
 
-以下为主要表的字段说明（精简版）：
+以下为主要表的字段说明：
 
 - users
 
-  - id BIGINT PK
-  - phone VARCHAR(20) UNIQUE
-  - nickname VARCHAR(50) UNIQUE
-  - password VARCHAR(1024)（加密存储，例如 bcrypt/argon2）
-  - avatar VARCHAR(255)
-  - bio VARCHAR(500)
-  - user_data JSON
-  - status TINYINT DEFAULT 1
-  - created_at, updated_at
+  - id BIGINT PK （用户 id 主键）
+  - phone VARCHAR(20) UNIQUE （用户手机号，唯一）
+  - nickname VARCHAR(50) UNIQUE （用户昵称，唯一）
+  - password VARCHAR(1024) （用户密码，使用 bcrypt/argon2 等不可逆加密存储）
+  - avatar VARCHAR(255) （用户头像 URL）
+  - bio VARCHAR(500) （用户个人简介）
+  - user_data JSON （用户相关复合信息，如掌握的技术栈，JSON 格式）
+  - status TINYINT DEFAULT 1 （用户状态，1-正常，0-禁用）
+  - created_at DATETIME, updated_at DATETIME （创建与更新时间）
 
 - posts
 
-  - id BIGINT PK
-  - user_id BIGINT
-  - category VARCHAR(64)
-  - tags JSON
-  - title VARCHAR(200)
-  - content LONGTEXT
-  - summary VARCHAR(500)
-  - status TINYINT DEFAULT 0
-  - view_count INT DEFAULT 0
-  - created_at, updated_at
-  - 索引建议：user_id、status；若需全文搜索，使用 FULLTEXT 或 Elasticsearch
+  - id BIGINT PK （博客 id 主键）
+  - user_id BIGINT （发布用户 id，外键 -> users.id）
+  - category VARCHAR(64) （文章分类）
+  - tags JSON （标签数组，JSON 格式）
+  - title VARCHAR(200) （文章标题）
+  - content LONGTEXT （文章内容，可能为 Markdown/HTML）
+  - summary VARCHAR(500) （文章摘要）
+  - status TINYINT DEFAULT 0 （文章状态，0-草稿，1-已发布，2-归档）
+  - view_count INT DEFAULT 0 （浏览量）
+  - created_at DATETIME, updated_at DATETIME （创建/更新时间）
 
 - post_likes
 
-  - id BIGINT PK
-  - user_id BIGINT
-  - post_id BIGINT
-  - created_at
+  - id BIGINT PK （点赞记录 id）
+  - user_id BIGINT （点赞用户 id，外键 -> users.id）
+  - post_id BIGINT （被点赞文章 id，外键 -> posts.id）
+  - created_at DATETIME （点赞时间）
   - 索引：(post_id)、(user_id)
 
 - comments
 
-  - id BIGINT PK
-  - post_id BIGINT
-  - user_id BIGINT
-  - parent_id BIGINT NULL
-  - content TEXT
-  - created_at
+  - id BIGINT PK （评论 id）
+  - post_id BIGINT （所属文章 id，外键 -> posts.id）
+  - user_id BIGINT （评论用户 id，外键 -> users.id）
+  - parent_id BIGINT NULL （父评论 id，若为 NULL 则为顶级评论）
+  - content TEXT （评论内容）
+  - created_at DATETIME （评论时间）
 
 - consultation_relation
 
-  - id BIGINT PK
-  - user_id BIGINT NOT NULL
-  - price DOUBLE NOT NULL
-  - domains VARCHAR(1024) 或 JSON
-  - created_at
+  - id BIGINT PK （咨询服务项 id）
+  - user_id BIGINT NOT NULL （发布者/专家 id，外键 -> users.id）
+  - price DECIMAL(10,2) NOT NULL （单次咨询价格）
+  - domains VARCHAR(1024) 或 JSON （服务领域或技能标签）
+  - description VARCHAR(1000) NULL （服务描述/说明，可选）
+  - created_at DATETIME （创建时间）
 
 - consultations
 
-  - id BIGINT PK
-  - expert_id BIGINT
-  - seeker_id BIGINT
-  - status TINYINT DEFAULT 0
-  - created_at
+  - id BIGINT PK （咨询会话/订单 id）
+  - expert_id BIGINT （专家用户 id，外键 -> users.id）
+  - seeker_id BIGINT （求助者/下单用户 id，外键 -> users.id）
+  - status TINYINT DEFAULT 0 （会话状态，例：0-pending，1-active，2-completed，3-cancelled）
+  - scheduled_at DATETIME NULL （预约/开始时间，可选）
+  - created_at DATETIME （创建时间）
   - 索引：expert_id、seeker_id、status
 
 - consultation_payments
 
-  - id BIGINT PK AUTO_INC
-  - consultation_id BIGINT
-  - amount DECIMAL(10,2)
-  - status TINYINT DEFAULT 0 (0-pending,1-success,2-failed)
-  - provider VARCHAR(64)
-  - transaction_id VARCHAR(128)
-  - created_at
-  - 唯一约束：UNIQUE(provider, transaction_id)
+  - id BIGINT PK AUTO_INCREMENT （支付记录 id）
+  - consultation_id BIGINT （关联咨询会话 id，外键 -> consultations.id）
+  - amount DECIMAL(10,2) （支付金额）
+  - status TINYINT DEFAULT 0 （支付状态：0-pending，1-success，2-failed）
+  - provider VARCHAR(64) （支付提供商，如 alipay/wechat/stripe）
+  - transaction_id VARCHAR(128) （第三方交易号）
+  - created_at DATETIME （支付时间/记录创建时间）
+  - 唯一约束：UNIQUE(provider, transaction_id) （保证回调幂等）
 
 - consultation_messages
 
-  - id BIGINT PK AUTO_INC
-  - consultation_id BIGINT
-  - sender_id BIGINT
-  - content TEXT
-  - message_type VARCHAR(32) DEFAULT 'text'
-  - created_at
+  - id BIGINT PK AUTO_INCREMENT （消息 id）
+  - consultation_id BIGINT （所属咨询会话 id，外键 -> consultations.id）
+  - sender_id BIGINT （发送者 id，外键 -> users.id）
+  - content TEXT （消息内容）
+  - message_type VARCHAR(32) DEFAULT 'text' （消息类型，如 text/image/system 等）
+  - created_at DATETIME （消息时间）
   - 索引：consultation_id
 
 - mock_interviews
 
-  - id BIGINT PK
-  - user_id BIGINT
-  - domain VARCHAR(32)
-  - style VARCHAR(32)
-  - recording_url VARCHAR(1024)
-  - created_at
+  - id BIGINT PK （模拟面试记录 id）
+  - user_id BIGINT （参加用户 id，外键 -> users.id）
+  - domain VARCHAR(32) （面试领域/方向）
+  - style VARCHAR(32) （面试风格，如 behavior/technical）
+  - recording_url VARCHAR(1024) （录音/视频存储地址）
+  - score INT NULL （面试评分，可选）
+  - created_at DATETIME （创建时间）
 
 - study_path_recommendations
-  - id BIGINT PK
-  - user_id BIGINT
-  - content TEXT
-  - created_at
+  - id BIGINT PK （推荐记录 id）
+  - user_id BIGINT （关联用户 id，外键 -> users.id）
+  - content TEXT （推荐内容）
+  - created_at DATETIME （创建时间）
 
 ### 安全保密设计
 
@@ -203,11 +202,11 @@
 - 敏感数据：密码使用不可逆加密存储（bcrypt/argon2）；生产环境启用 TLS 连接。
 - 审计日志：记录支付回调、订单状态变化等关键日志以便追溯。
 
-## 物理设计与索引建议（详细）
+## 物理设计与索引建议
 
 - 引擎：InnoDB
 - 字符集：utf8mb4
-- 索引建议：
+- 索引：
   - posts(user_id), posts(status), posts(created_at)
   - post_likes(post_id), post_likes(user_id)
   - comments(post_id), comments(parent_id)
@@ -215,7 +214,6 @@
   - consultation_messages(consultation_id)
 - tags/domains 查询建议：
   - 使用 JSON 类型并配合 JSON_CONTAINS 查询，或在写入时同步生成标准化字段并为其建立索引
-  - 若频繁模糊搜索，考虑引入搜索引擎（Elasticsearch）
 
 ## 事务与并发控制
 
@@ -229,9 +227,6 @@
 - 数据迁移：使用有序的 SQL 迁移脚本（Flyway 或 Liquibase）。
 - 日志与监控：监控慢查询、连接数、IO、buffer pool 使用率；设置慢查询阈值并优化。
 
-## 数据字典维护建议
-
-- 建议维护机器可读的数据字典（CSV/Excel）包含：表名、字段名、类型、是否主键、是否允许空、默认值、注释、索引、外键说明。
 
 ## 安全与保密（补充）
 

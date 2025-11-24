@@ -57,7 +57,6 @@ public class ModelClient {
                         .model("paraformer-realtime-v2")
                         .format("wav")
                         .sampleRate(16000)
-                        // “language_hints”只支持paraformer-v2和paraformer-realtime-v2模型
                         .parameter("language_hints", new String[]{"zh", "en"})
                         .build();
 

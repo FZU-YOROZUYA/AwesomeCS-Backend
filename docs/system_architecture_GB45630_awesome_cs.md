@@ -51,8 +51,8 @@
 
 - Service：后端业务层组件
 - Controller：REST/WebSocket 入口
-- consultation：付费咨询会话
-- relation：专家发布的咨询条目
+- Repository: 数据仓储层
+- Mapper: 与数据库交互的入口
 - token：Sa-Token 会话/短期 WebSocket 握手凭证
 
 ## 4 符合性
@@ -77,21 +77,35 @@
 
 ### 6.2 架构元素说明
 
-- Web 层（Controller）
-  - 主要文件夹：src/main/java/com/yorozuya/awesomecs/controller
-  - 责任：请求解析、鉴权校验（Sa-Token）、参数校验、调用 Service
+- Web 层（Controller, WS）
+  - 主要文件夹：
+    - src/main/java/com/yorozuya/awesomecs/controller
+    - src/main/java/com/yorozuya/awesomecs/ws_config
+  - 责任：请求解析、鉴权校验（Sa-Token）、参数校验、调用 Service、启动 WebSocket 连接
 - 业务层（Service）
   - 主要文件夹：src/main/java/com/yorozuya/awesomecs/service(/impl)
   - 责任：业务编排、事务管理、幂等/并发控制
-- 数据访问层（Mapper）
-  - 位置：src/main/java/com/yorozuya/awesomecs/repository/mapper 与 src/main/resources/mapper
-  - 责任：持久化、复杂 SQL 封装
-- 实时通信层（WebSocket）
-  - 文件：src/main/java/com/yorozuya/awesomecs/config/_WebSocket_.java
-  - 责任：握手鉴权、会话管理、消息路由、消息持久化到 consultation_messages
-- 外部服务
-  - AI：DashScope（语音识别）、DeepSeek（文本处理）、MiniMax（TTS）
-  - 支付网关：异步回调处理（consultation_payments）
+  - AI服务 （AI）
+      - 位置：src/main/java/com/yorozuya/awesomecs/service/ai
+      - 责任：DashScope（语音识别）、DeepSeek（文本处理）、MiniMax（TTS）
+- 数据访问层（Repository）
+  - 数据库访问层（Mapper）
+    - 位置：src/main/java/com/yorozuya/awesomecs/repository/mapper 与 src/main/resources/mapper
+    - 责任：持久化、复杂 SQL 封装
+  - Redis 内存访问层
+    - 位置：src/main/java/com/yorozuya/awesomecs/repository/redis
+    - 责任：与 Redis 内存数据库交互
+- 实体类层 (model)
+  - 数据库实体类  (domain)
+    - 位置：src/main/java/com/yorozuya/awesomecs/model/domain
+    - 责任：负责与数据库关系进行映射
+  - 请求响应 DTO 类 (request, response)
+    - 位置：src/main/java/com/yorozuya/awesomecs/model/request 和 src/main/java/com/yorozuya/awesomecs/model/response
+    - 责任：负责映射 Controller 对应的请求类和响应类
+- 常量池 （common）
+  - 位置：src/main/java/com/yorozuya/awesomecs/comon
+  - 责任：管理着项目的公共部分，比如全局异常处理器，以及返回的错误码等等
+
 
 ### 6.3 MVC 架构
 
@@ -139,7 +153,7 @@ Handler 同时负责将持久化后的消息广播给其他客户端（View 层�
 5. 具体实现
 
 - Controller：
-  - 使用注解验证（@SaCheckLogin、JSR-303 等）与统一异常处理（全局异常处理器）
+  - 使用注解验证（SaToken 框架提供的 @SaCheckLogin 等注解）与统一异常处理（全局异常处理器）
   - 参数命名采用 snake_case，通过 DTO 的 @JsonProperty 映射到驼峰 Java 字段
 - Service：
   - 包含事务边界（@Transactional）并保证方法的幂等性（支付、回调等）

@@ -1,6 +1,8 @@
 package com.yorozuya.awesomecs.controller;
 
 
+import com.yorozuya.awesomecs.service.StudyPathRecommendationsService;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RestController;
@@ -10,5 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class StudyPathRecommendController {
 
+    @Resource
+    private StudyPathRecommendationsService  studyPathRecommendationsService;
 
 }

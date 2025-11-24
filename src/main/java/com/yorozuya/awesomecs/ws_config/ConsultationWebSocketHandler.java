@@ -16,6 +16,7 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,7 +39,6 @@ public class ConsultationWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("[consultation]: afterConnectionEstablished");
         String token = getTokenFromSession(session);
-        log.info("[consultation]: token is {}", token);
         if (token == null) {
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Invalid token"));
             return;
@@ -105,7 +105,7 @@ public class ConsultationWebSocketHandler extends TextWebSocketHandler {
         msg.setConsultationId(consultationId);
         msg.setSenderId(userId);
         msg.setContent(content);
-        msg.setCreatedAt(new java.util.Date());
+        msg.setCreatedAt(new Date());
         consultationMessagesService.save(msg);
 
         // 广播消息给咨询中的其他用户

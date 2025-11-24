@@ -1,4 +1,4 @@
-package com.yorozuya.awesomecs.config;
+package com.yorozuya.awesomecs.ws_config;
 
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Configuration;

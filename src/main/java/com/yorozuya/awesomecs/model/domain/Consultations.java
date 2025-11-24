@@ -16,31 +16,11 @@ import lombok.Data;
 @TableName(value ="consultations")
 @Data
 public class Consultations implements Serializable {
-    /**
-     * 
-     */
     @TableId
     private Long id;
-
-    /**
-     * 专家（提供咨询的用户）ID
-     */
     private Long expertId;
-
-    /**
-     * 咨询者ID
-     */
     private Long seekerId;
-
-    /**
-     * 状态：0-待支付，1-已预约，2-已完成，3-已取消
-     */
     private Integer status;
-
-
-    /**
-     * 
-     */
     private Date createdAt;
 
     @TableField(exist = false)

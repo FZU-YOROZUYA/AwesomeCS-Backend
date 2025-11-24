@@ -47,7 +47,6 @@ public class ConsultationsServiceImpl extends ServiceImpl<ConsultationsMapper, C
         consultation.setStatus(0); // 待支付
         this.save(consultation);
 
-        // 创建支付记录
         ConsultationPayments payment = new ConsultationPayments();
         payment.setConsultationId(consultation.getId());
         payment.setAmount(BigDecimal.valueOf(relation.getPrice()));
