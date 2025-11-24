@@ -7,9 +7,14 @@ import com.yorozuya.awesomecs.service.StudyPathRecommendationsService;
 import com.yorozuya.awesomecs.service.ai.Tools;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import com.yorozuya.awesomecs.model.response.ChatMessageResponse;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -17,6 +22,8 @@ import org.springframework.ai.deepseek.DeepSeekChatModel;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,34 +39,78 @@ public class StudyPathRecommendationsServiceImpl extends ServiceImpl<StudyPathRe
     @Resource
     private DeepSeekChatModel chatModel;
 
-    private ChatMemory chatMemory = MessageWindowChatMemory.builder().maxMessages(128).build();
+    @Resource
+    private Tools tools;
+
+    private final ChatMemory chatMemory = MessageWindowChatMemory.builder().maxMessages(128).build();
 
     private final String SYS_PROMPT = """
             你是一个 IT 行业的学习路径推荐师，你的工作是根据用户的目标岗位和掌握的技术栈去推荐用户接下来最合适的学习规划。
             """;
 
-
+    @Override
     public Flux<String> getStudyPathRecommendations(Long userId, String text) {
         String sUserId = String.valueOf(userId);
-        if (chatMemory.get(sUserId) == null) {
-            SystemMessage systemMessage = new SystemMessage(SYS_PROMPT);
-            chatMemory.add(sUserId, systemMessage);
+        List<Message> messages = chatMemory.get(sUserId);
+        if (messages.isEmpty()) {
+            String userInfo = "用户的 id 为 " + sUserId;
+            chatMemory.add(sUserId, new SystemMessage(SYS_PROMPT + userInfo));
         }
-        chatMemory.add(sUserId, new UserMessage(text));
-        return ChatClient.create(chatModel)
+        ChatClient chatClient = ChatClient.builder(chatModel)
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).conversationId(sUserId).build())  // 添加 advisor 来自动处理内存
+                .build();
+
+        Flux<String> rst = chatClient
                 .prompt(new Prompt(
                         chatMemory.get(sUserId)
                 ))
-                .tools(new Tools())
+                .tools(tools)
                 .toolContext(Map.of("userId", sUserId))
                 .stream()
                 .content();
+
+        return rst;
     }
 
 
+    @Override
     public boolean cleanChatMem(Long userId) {
         chatMemory.clear(String.valueOf(userId));
         return true;
+    }
+
+    @Override
+    public List<String> getChatHistory(Long userId) {
+        String sUserId = String.valueOf(userId);
+        List<Message> messages = chatMemory.get(sUserId);
+        List<String> history = new ArrayList<>();
+        for (Message message : messages) {
+            if (!(message instanceof SystemMessage)) {
+                if (message instanceof UserMessage) {
+                    history.add("User: " + message.getText());
+                } else if (message instanceof AssistantMessage) {
+                    history.add("Assistant: " + message.getText());
+                }
+            }
+        }
+        return history;
+    }
+
+    @Override
+    public List<ChatMessageResponse> getChatHistoryDetailed(Long userId) {
+        String sUserId = String.valueOf(userId);
+        List<Message> messages = chatMemory.get(sUserId);
+        List<ChatMessageResponse> history = new ArrayList<>();
+        for (Message message : messages) {
+            if (!(message instanceof SystemMessage)) {
+                if (message instanceof UserMessage) {
+                    history.add(new ChatMessageResponse("user", message.getText()));
+                } else if (message instanceof AssistantMessage) {
+                    history.add(new ChatMessageResponse("assistant", message.getText()));
+                }
+            }
+        }
+        return history;
     }
 
 }

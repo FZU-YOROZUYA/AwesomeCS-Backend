@@ -18,7 +18,9 @@ import com.yorozuya.awesomecs.service.CommentsService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -108,7 +110,7 @@ public class PostsController {
             userId = StpUtil.getLoginIdAsLong();
         int likeCount = postLikesService.countLikes(id);
         boolean isLiked = userId != null && postLikesService.isLiked(userId, id);
-        java.util.Map<String, Object> rst = new java.util.HashMap<>();
+        Map<String, Object> rst = new HashMap<>();
         rst.put("likeCount", likeCount);
         rst.put("isLiked", isLiked);
         return Result.buildSuccessResult(rst);

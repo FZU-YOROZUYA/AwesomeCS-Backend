@@ -3,7 +3,7 @@ spring:
     deepseek:
       api-key: ${DEEPSEEK_API_KEY}
     minimax:
-      api-key: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJHcm91cE5hbWUiOiLmtbfonrrnlKjmiLdfNDQyMzE4Mjg4NzcyMjIyOTg0IiwiVXNlck5hbWUiOiLmtbfonrrnlKjmiLdfNDQyMzE4Mjg4NzcyMjIyOTg0IiwiQWNjb3VudCI6IiIsIlN1YmplY3RJRCI6IjE5ODU3NTU5MDM3NTU4MjEzMzIiLCJQaG9uZSI6IjE4NjUwMjE4NTIwIiwiR3JvdXBJRCI6IjE5ODU3NTU5MDM3NDc0MzI3MjQiLCJQYWdlTmFtZSI6IiIsIk1haWwiOiIiLCJDcmVhdGVUaW1lIjoiMjAyNS0xMS0xMCAxNTo0ODozNCIsIlRva2VuVHlwZSI6MSwiaXNzIjoibWluaW1heCJ9.AZF_cTW0Rmv7ryGRk3qiM-sBYWtdH8kwuO8sxKB1yMaveUiTlyGyzQ4Mn1t65yMAZGGQeWTmIRVRsnssOA4PXo7E9MmWtHywF0cuiozFig4AAWFRkhqhelukdmdfUhrkajqeXzbSI0fx9RpnCSSalj9rjmTL-LCQ0sy7s6fmAN0GNmS7dcrHy_xotofhs5PWrC4EztZjW0_Lo9lzNzUA3TEwN0kqnie0sRhtToT9LWOcZytnq48EoXArkdrFo9jEDhiJ3iNtjD8r9d2srS2YY2Qr97tDtfrny9shvaPdx2Ri8XGOlD7TrCbzECUe22pGk14WzTcTaCPIQvWyXJ2Vug
+      api-key: ${MINIMAX_API_KEY}
   jackson:
     parser:
       allow-unquoted-control-chars: true
@@ -31,6 +31,12 @@ spring:
     username: root
     url: jdbc:mysql://localhost:3306/awesome_cs?useUnicode=true
     driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 3000
 server:
   port: 8085
 
@@ -42,13 +48,11 @@ mybatis-plus:
 
 sa-token:
   token-name: Authorization
-  # token 有效期（单位：秒） 默认30天，-1 代表永久有效
   timeout: 2592000
   # token 最低活跃频率（单位：秒），如果 token 超过此时间没有访问系统就会被冻结，默认-1 代表不限制，永不冻结
   active-timeout: -1
   # 在多人登录同一账号时，是否共用一个 token （为 true 时所有登录共用一个 token, 为 false 时每次登录新建一个 token）
-  is-share: false
-  # token 风格（默认可取值：uuid、simple-uuid、random-32、random-64、random-128、tik）
+  is-share: true
   token-style: uuid
   # 是否输出操作日志
   is-log: true

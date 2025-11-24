@@ -23,6 +23,9 @@ public class ConsultationRelationResponse {
 
     private List<String> domains;
 
+    @JsonProperty("avatar_url")
+    private String avatarUrl;
+
     @JsonProperty("created_at")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
     private Date createdAt;
