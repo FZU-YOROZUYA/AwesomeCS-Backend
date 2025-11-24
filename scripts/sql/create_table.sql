@@ -97,7 +97,7 @@ create table awesome_cs.posts
     content    longtext                               not null,
     summary    varchar(500)                           null comment '文章摘要',
     status     tinyint      default 0                 null comment '状态：0-草稿，1-已发布，2-已删除',
-    view_count int unsigned default '0'               null comment '浏览量',
+    view_count int unsigned default 0               null comment '浏览量',
     created_at datetime     default CURRENT_TIMESTAMP null,
     updated_at datetime     default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP
 )
@@ -133,4 +133,3 @@ create table awesome_cs.users
         unique (phone)
 )
     comment '用户基础信息表';
-

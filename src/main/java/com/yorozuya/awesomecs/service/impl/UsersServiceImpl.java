@@ -30,7 +30,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users>
     @Override
     public long registerUser(String username, String password, String phone, String avatarUrl, String targetJob,
             List<String> techs, String bio) {
-        long uid = IdUtil.getSnowflakeNextId();
+        long uid = IdUtil.getSnowflakeNextId();//雪花算法
         String afterPassword = DigestUtil.md5Hex(password);
         HashMap<String, Object> userInterest = new HashMap<>();
         userInterest.put("targetJob", targetJob);
@@ -85,6 +85,24 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users>
         userData.put("techs", techs);
         String userDataJson = new Gson().toJson(userData);
         user.setUserData(userDataJson);
+        return this.updateById(user);
+    }
+
+    @Override
+    public boolean updatePwd(Long id,String oldPwd,String newPwd) {
+        Users user = this.getById(id);
+        if (user == null) {
+            throw new BusinessException(Constants.ResponseCode.NO_OBJECT);
+        }
+        //验证码旧密码，如果旧密码通过则可以修改密码
+        if(!DigestUtil.md5Hex(oldPwd).equals(user.getPassword())) {
+            throw new BusinessException(Constants.ResponseCode.PASSWORD_WRONG);
+        }
+        //验证新旧密码是否相同
+        if(DigestUtil.md5Hex(newPwd).equals(user.getPassword())) {
+            throw new BusinessException(Constants.ResponseCode.PASSWORD_SAME_AS_OLD); // 新密码与旧密码相同
+        }
+        user.setPassword(DigestUtil.md5Hex(newPwd));
         return this.updateById(user);
     }
 }

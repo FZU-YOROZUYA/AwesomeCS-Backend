@@ -73,4 +73,15 @@ public class UserController {
         return Result.buildSuccessResult(null);
     }
 
+    @PostMapping("/password/update")
+    @SaCheckLogin
+    public Result<Object> updatePassword(
+            @RequestParam("oldPassword") String oldPassword,
+            @RequestParam("newPassword")String newPassword,
+            @RequestHeader("Authorization") String token
+        ) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        usersService.updatePwd(userId, oldPassword, newPassword);
+        return Result.buildSuccessResult(null);
+    }
 }

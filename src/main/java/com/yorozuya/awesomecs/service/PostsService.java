@@ -19,6 +19,8 @@ public interface PostsService extends IService<Posts> {
     PageResponse<PostSummaryResponse> listPosts(Integer page, Integer size, String keyword, String category,
             String tag);
 
+    PageResponse<PostSummaryResponse> listPopularPosts(Integer page, Integer siz);
+
     PostDetailResponse getPostDetail(Long id, Long currentUserId);
 
     Long createPost(CreatePostRequest req, Long userId);

@@ -43,4 +43,9 @@ public interface UsersService extends IService<Users> {
          * @return 是否更新成功
          */
         boolean updateProfile(Long id, String bio, List<String> techs, String targetJob);
+
+        /**
+         * 修改密码
+         * */
+        boolean updatePwd(Long id,String oldPwd,String newPwd);
 }
