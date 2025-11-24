@@ -4,6 +4,8 @@ import com.yorozuya.awesomecs.model.domain.PostLikes;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.util.List;
+
 /**
 * @author wjc28
 * @description 针对表【post_likes(文章点赞表)】的数据库操作Mapper
@@ -12,7 +14,6 @@ import org.apache.ibatis.annotations.Mapper;
 */
 @Mapper
 public interface PostLikesMapper extends BaseMapper<PostLikes> {
-
 }
 
 

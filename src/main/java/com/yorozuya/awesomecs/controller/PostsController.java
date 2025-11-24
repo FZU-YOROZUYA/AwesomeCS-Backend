@@ -32,19 +32,30 @@ public class PostsController {
 
     @Resource
     private CommentsService commentsService;
-
+//获取博客列表
     @GetMapping
     @SaIgnore
     public Result<PageResponse<PostSummaryResponse>> listPosts(
             @RequestParam(value = "page", required = false) Integer page,
             @RequestParam(value = "size", required = false) Integer size,
-            @RequestParam(value = "keyword", required = false) String keyword
-
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value="category",required=false) String category,
+            @RequestParam(value="tag",required=false) String tag
             ) {
-        PageResponse<PostSummaryResponse> resp = postsService.listPosts(page, size, keyword, null, null);
+        PageResponse<PostSummaryResponse> resp = postsService.listPosts(page, size, keyword, category, tag);
         return Result.buildSuccessResult(resp);
     }
-
+//获取热门博客列表
+    @GetMapping("/popular")
+    @SaIgnore
+    public Result<PageResponse<PostSummaryResponse>> listPopularPosts(
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "size", required = false) Integer size
+            ) {
+        PageResponse<PostSummaryResponse> resp = postsService.listPopularPosts(page, size);
+        return Result.buildSuccessResult(resp);
+    }
+//获取博客详情
     @GetMapping("/{id}")
     @SaIgnore
     public Result<PostDetailResponse> getPost(@PathVariable("id") Long id) {
@@ -56,6 +67,7 @@ public class PostsController {
         return Result.buildSuccessResult(resp);
     }
 
+//    创建博客
     @PostMapping
     @SaCheckLogin
     public Result<Object> createPost(@RequestBody CreatePostRequest req, @RequestHeader("Authorization") String token) {
@@ -63,7 +75,7 @@ public class PostsController {
         Long id = postsService.createPost(req, userId);
         return Result.buildSuccessResult(id);
     }
-
+//    修改博客
     @PutMapping("/{id}")
     @SaCheckLogin
     public Result<Object> updatePost(@PathVariable Long id, @RequestBody UpdatePostRequest req, @RequestHeader("Authorization") String token) {
@@ -71,7 +83,7 @@ public class PostsController {
         postsService.updatePost(id, req, userId);
         return Result.buildSuccessResult(null);
     }
-
+//     删除博客
     @DeleteMapping("/{id}")
     @SaCheckLogin
     public Result<Object> deletePost(@PathVariable Long id, @RequestHeader("Authorization") String token) {

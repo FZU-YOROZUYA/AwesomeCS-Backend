@@ -38,7 +38,8 @@ public class Constants {
 		CODE_OUT("0015", "验证码过期"),
 		CODE_ERROR("0016", "验证码错误"),
         ONLY_ONE_CONSULTATION("0017", "只能创建一个咨询"),
-        AUDIO_CHANGE_SERVICE_FAIL("0018", "语音转化服务失败");
+        AUDIO_CHANGE_SERVICE_FAIL("0018", "语音转化服务失败"),
+        PASSWORD_SAME_AS_OLD("0019","新密码不能与旧密码相同");
 
 		private final String code;
 		private final String info;
