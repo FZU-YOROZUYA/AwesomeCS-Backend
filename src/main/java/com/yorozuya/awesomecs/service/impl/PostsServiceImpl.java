@@ -31,7 +31,7 @@ import java.util.Map;
  * @description 针对表【posts(博客文章表)】的数据库操作Service实现
  * @createDate 2025-11-01 15:55:02
  */
-@Service
+@Service("PostsService")
 public class PostsServiceImpl extends ServiceImpl<PostsMapper, Posts>
         implements PostsService {
 

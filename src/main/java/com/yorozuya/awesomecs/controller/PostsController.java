@@ -16,6 +16,8 @@ import com.yorozuya.awesomecs.model.request.CreateCommentRequest;
 import com.yorozuya.awesomecs.model.response.CommentResponse;
 import com.yorozuya.awesomecs.service.CommentsService;
 import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -26,7 +28,8 @@ import java.util.Map;
 @RequestMapping("/api/posts")
 public class PostsController {
 
-    @Resource
+    @Autowired
+    @Qualifier("PostsService")
     private PostsService postsService;
 
     @Resource
