@@ -8,6 +8,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.yorozuya.awesomecs.comon.Constants;
+import com.yorozuya.awesomecs.comon.exception.BusinessException;
 import com.yorozuya.awesomecs.model.domain.PostLikes;
 import com.yorozuya.awesomecs.model.domain.Posts;
 import com.yorozuya.awesomecs.model.response.PageResponse;
@@ -16,6 +18,7 @@ import com.yorozuya.awesomecs.model.response.PostSummaryResponse;
 import com.yorozuya.awesomecs.repository.mapper.PostLikesMapper;
 import com.yorozuya.awesomecs.repository.mapper.PostsMapper;
 import com.yorozuya.awesomecs.service.PostsService;
+import io.netty.util.internal.StringUtil;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +31,7 @@ import java.util.Map;
  * @description 针对表【posts(博客文章表)】的数据库操作Service实现
  * @createDate 2025-11-01 15:55:02
  */
-@Service
+@Service("PostsService")
 public class PostsServiceImpl extends ServiceImpl<PostsMapper, Posts>
         implements PostsService {
 
@@ -161,6 +164,9 @@ public class PostsServiceImpl extends ServiceImpl<PostsMapper, Posts>
 
     @Override
     public Long createPost(com.yorozuya.awesomecs.model.request.CreatePostRequest req, Long userId) {
+        if(StringUtil.isNullOrEmpty(req.getTitle())||StringUtil.isNullOrEmpty(req.getContent())){
+            throw new BusinessException(Constants.ResponseCode.ILLEGAL_PARAMETER);
+        }
         Posts p = new Posts();
         long id = IdUtil.getSnowflakeNextId();
         p.setId(id);
