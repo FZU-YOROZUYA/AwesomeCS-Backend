@@ -14,4 +14,17 @@
     <sql id="Base_Column_List">
         id,user_id,post_id,created_at
     </sql>
+
+    <select id="selectPopularMapsPage" resultType="map">
+        select
+            post_likes.post_id as p_id,
+            count(*) as p_count,
+            posts.view_count as p_view_count
+        from post_likes
+                 left join posts on posts.id = post_likes.post_id and posts.status = 1
+        group by post_likes.post_id, posts.view_count
+        order by p_count desc, p_view_count desc
+    </select>
+
+
 </mapper>

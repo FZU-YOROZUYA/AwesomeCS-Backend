@@ -1,10 +1,12 @@
 package com.yorozuya.awesomecs.repository.mapper;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.yorozuya.awesomecs.model.domain.PostLikes;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
+import java.util.Map;
 
 /**
 * @author wjc28
@@ -14,6 +16,7 @@ import java.util.List;
 */
 @Mapper
 public interface PostLikesMapper extends BaseMapper<PostLikes> {
+    IPage<Map<String,Object> > selectPopularMapsPage(IPage<Map<String,Object>> pg);
 }
 
 

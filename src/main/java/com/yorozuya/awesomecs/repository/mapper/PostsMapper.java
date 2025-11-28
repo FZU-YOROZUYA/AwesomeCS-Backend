@@ -4,6 +4,7 @@ import com.yorozuya.awesomecs.model.domain.Posts;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
+
 /**
 * @author wjc28
 * @description 针对表【posts(博客文章表)】的数据库操作Mapper

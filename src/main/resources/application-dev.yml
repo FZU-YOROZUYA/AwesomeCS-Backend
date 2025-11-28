@@ -27,7 +27,7 @@ spring:
             enable: true
             required: true
   datasource:
-    password: 1234567
+    password: pzl945464
     username: root
     url: jdbc:mysql://localhost:3306/awesome_cs?useUnicode=true
     driver-class-name: com.mysql.cj.jdbc.Driver

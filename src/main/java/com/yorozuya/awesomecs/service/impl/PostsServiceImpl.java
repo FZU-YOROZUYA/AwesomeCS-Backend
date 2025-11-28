@@ -90,17 +90,8 @@ public class PostsServiceImpl extends ServiceImpl<PostsMapper, Posts>
     public PageResponse<PostSummaryResponse> listPopularPosts(Integer page, Integer size) {
         int cur = (page == null || page <= 0) ? 1 : page;
         int sz = (size == null || size <= 0) ? 20 : size;
-        Page<Map<String,Object>> pg = new Page<>(cur, sz);
-        QueryWrapper<PostLikes> wrapper = new QueryWrapper<>();
-        wrapper.select("post_likes.post_id as p_id",
-                        "count(*) as p_count",
-                        "posts.view_count as p_view_count ")
-                .apply("left join posts on posts.id=post_likes.post_id")
-                .eq("posts.status", 1)
-                .groupBy("post_likes.post_id", "posts.view_count")
-                .orderByDesc("p_count")
-                .orderByDesc("p_view_count");
-        IPage<Map<String,Object>> res = postLikesMapper.selectMapsPage(pg,wrapper);//获得当前页的热门博客的id
+        IPage<Map<String,Object>> pg = new Page<>(cur, sz);
+        IPage<Map<String,Object>> res = postLikesMapper.selectPopularMapsPage(pg);//获得当前页的热门博客的id
         List<PostSummaryResponse> list = new ArrayList<>();
         for(Map<String,Object> p : res.getRecords()){
             if(p.get("p_id")==null) continue;
