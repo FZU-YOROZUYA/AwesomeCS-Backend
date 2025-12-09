@@ -14,7 +14,9 @@ public interface ConsultationsService extends IService<Consultations> {
 
     Long bookConsultation(Long seekerId, Long relationId);
 
-    void payCallback(Long consultationId, String transactionId);
+    void payCallback(String consultationId, String transactionId);
 
     List<Consultations> listMyConsultations(Long userId);
+
+    void endConsultation(Long consultationId, Long operatorUserId);
 }

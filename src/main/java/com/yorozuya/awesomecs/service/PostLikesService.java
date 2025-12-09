@@ -13,7 +13,6 @@ import java.util.Map;
  * @createDate 2025-11-01 15:55:02
  */
 public interface PostLikesService extends IService<PostLikes> {
-
     /**
      * 切换点赞状态，返回 action("liked"/"cancelled") 与当前 likeCount
      */

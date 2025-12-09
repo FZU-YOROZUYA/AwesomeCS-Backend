@@ -4,9 +4,17 @@ package com.yorozuya.awesomecs.service.ai;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONUtil;
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversation;
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationParam;
+import com.alibaba.dashscope.aigc.multimodalconversation.MultiModalConversationResult;
 import com.alibaba.dashscope.audio.asr.recognition.Recognition;
 import com.alibaba.dashscope.audio.asr.recognition.RecognitionParam;
 import cn.hutool.json.JSONObject;
+import com.alibaba.dashscope.common.MultiModalMessage;
+import com.alibaba.dashscope.common.Role;
+import com.alibaba.dashscope.exception.NoApiKeyException;
+import com.alibaba.dashscope.exception.UploadFileException;
+import com.alibaba.dashscope.utils.JsonUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -30,16 +38,12 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
-import java.util.Base64;
 
 @Component
 @Slf4j
@@ -58,7 +62,6 @@ public class ModelClient {
     private Tools tools;
 
     public String chat(List<Message> messages, String input, String userId) {
-        messages.add(new UserMessage(input));
         Prompt fullPrompt = new Prompt(messages);
         ChatResponse response = ChatClient.create(chatModel)
                 .prompt(fullPrompt)
@@ -72,36 +75,52 @@ public class ModelClient {
         if (response != null) {
             output = response.getResult().getOutput();
         }
-        messages.add(output);
         if (output != null) {
             return output.getText();
         }
         return null;
     }
 
-    public String audio2Text(InputStream stream, String userId) throws IOException {
-        Recognition recognizer = new Recognition();
-        String tmpFileName = userId + UUID.randomUUID().toString();
+    public String audio2Text(InputStream stream, String userId) throws IOException, NoApiKeyException, UploadFileException {
+        String tmpFileName = userId + UUID.randomUUID() + ".wav";
+        String fileName = Paths.get(tmpFileName).getFileName().toString();
         Files.copy(stream, Paths.get(tmpFileName), StandardCopyOption.REPLACE_EXISTING);
-        RecognitionParam param =
-                RecognitionParam.builder()
-                        .apiKey(QWEN_API_KEY)
-                        .model("paraformer-realtime-v2")
-                        .format("wav")
-                        .sampleRate(16000)
-                        .parameter("language_hints", new String[]{"zh", "en"})
-                        .build();
-        File tmp = new File(tmpFileName);
-        String rst = recognizer.call(param, tmp);
-        tmp.delete();
-        JsonObject obj = JsonParser.parseString(rst).getAsJsonObject();
-        // sentences 是数组
-        JsonArray sentences = obj.getAsJsonArray("sentences");
-        JsonObject firstSentence = sentences.get(0).getAsJsonObject();
+        MultiModalConversation conv = new MultiModalConversation();
+        MultiModalMessage userMessage = MultiModalMessage.builder()
+                .role(Role.USER.getValue())
+                .content(Arrays.asList(
+                        Collections.singletonMap("audio",
+                                fileName)))
+                .build();
+        MultiModalConversationParam param = MultiModalConversationParam.builder()
+                .model("qwen-audio-asr")
+                .message(userMessage)
+                .apiKey(QWEN_API_KEY)
+                .build();
+        MultiModalConversationResult result = conv.call(param);
+        String json = JsonUtils.toJson(result);
+        new File(tmpFileName).delete();
+        return extractFirstText(json);
+    }
 
-        // 取 text 字段
-        String text = firstSentence.get("text").getAsString();
-        return text;
+
+    public static String extractFirstText(String json) {
+        JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+        JsonObject output = root.has("output") ? root.getAsJsonObject("output") : null;
+        if (output == null) return null;
+
+        JsonArray choices = output.has("choices") ? output.getAsJsonArray("choices") : null;
+        if (choices == null || choices.size() == 0) return null;
+
+        JsonObject firstChoice = choices.get(0).getAsJsonObject();
+        JsonObject message = firstChoice.has("message") ? firstChoice.getAsJsonObject("message") : null;
+        if (message == null) return null;
+
+        JsonArray content = message.has("content") ? message.getAsJsonArray("content") : null;
+        if (content == null || content.size() == 0) return null;
+
+        JsonObject firstContent = content.get(0).getAsJsonObject();
+        return firstContent.has("text") ? firstContent.get("text").getAsString() : null;
     }
 
 
@@ -150,14 +169,7 @@ public class ModelClient {
             throw new BusinessException(Constants.ResponseCode.AUDIO_CHANGE_SERVICE_FAIL);
         }
 
-        byte[] audioBytes = hexStringToByteArray(hexAudio);
-        if (audioBytes == null || audioBytes.length == 0) {
-            throw new BusinessException(Constants.ResponseCode.AUDIO_CHANGE_SERVICE_FAIL);
-        }
-
-        // 将字节数组编码为 base64 字符串
-        String base64Audio = Base64.getEncoder().encodeToString(audioBytes);
-        return base64Audio;
+        return hexAudio;
     }
 
 

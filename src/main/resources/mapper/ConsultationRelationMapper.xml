@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yorozuya.awesomecs.repository.mapper.ConsultationRelationMapper">
+
+    <resultMap id="ConsultationRelationResponseMap" type="com.yorozuya.awesomecs.model.response.ConsultationRelationResponse">
+        <id property="id" column="id" />
+        <result property="userId" column="user_id" />
+        <result property="username" column="nickname" />
+        <result property="price" column="price" />
+        <result property="info" column="domains" />
+        <result property="avatarUrl" column="avatar" />
+        <result property="consultationCount" column="consultation_count" />
+        <result property="createdAt" column="created_at" />
+    </resultMap>
+
+    <select id="selectRelationsPaged" resultMap="ConsultationRelationResponseMap" parameterType="map">
+        SELECT
+            cr.id,
+            cr.user_id,
+            u.nickname,
+            cr.price,
+            cr.domains,
+            u.avatar,
+            COALESCE(c.consultation_count, 0) AS consultation_count,
+            cr.created_at
+        FROM consultation_relation cr
+        LEFT JOIN users u ON cr.user_id = u.id
+        LEFT JOIN (
+            SELECT expert_id, COUNT(*) AS consultation_count
+            FROM consultations
+            GROUP BY expert_id
+        ) c ON c.expert_id = cr.user_id
+        <where>
+            <if test="domain != null and domain != ''">
+                AND JSON_CONTAINS(cr.domains, CONCAT('"', #{domain}, '"'))
+            </if>
+            <if test="excludeUserId != null">
+                AND cr.user_id != #{excludeUserId}
+            </if>
+        </where>
+        ORDER BY cr.created_at DESC
+        <if test="offset != null and size != null">
+            LIMIT #{offset}, #{size}
+        </if>
+    </select>
+
+    <select id="selectRelationsPagedCount" resultType="long" parameterType="map">
+        SELECT COUNT(*) FROM consultation_relation cr
+        <where>
+            <if test="domain != null and domain != ''">
+                AND JSON_CONTAINS(cr.domains, CONCAT('"', #{domain}, '"'))
+            </if>
+            <if test="excludeUserId != null">
+                AND cr.user_id != #{excludeUserId}
+            </if>
+        </where>
+    </select>
+</mapper>

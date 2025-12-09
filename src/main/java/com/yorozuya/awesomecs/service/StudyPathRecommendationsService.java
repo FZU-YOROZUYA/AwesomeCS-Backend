@@ -16,8 +16,6 @@ public interface StudyPathRecommendationsService extends IService<StudyPathRecom
 
     boolean cleanChatMem(Long userId);
 
-    List<String> getChatHistory(Long userId);
-
     List<ChatMessageResponse> getChatHistoryDetailed(Long userId);
 }
 

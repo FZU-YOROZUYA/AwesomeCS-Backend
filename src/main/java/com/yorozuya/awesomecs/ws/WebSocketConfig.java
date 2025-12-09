@@ -19,7 +19,5 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(consultationWebSocketHandler, "/ws/consultation/**")
                 .setAllowedOrigins("*");
-        registry.addHandler(interviewWebSocketHandler, "/ws/interview/**")
-                .setAllowedOrigins("*");
     }
 }

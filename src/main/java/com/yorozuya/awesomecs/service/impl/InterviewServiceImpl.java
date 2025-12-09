@@ -27,10 +27,7 @@ public class InterviewServiceImpl extends ServiceImpl<MockInterviewsMapper, Mock
         record.setDomain(req.getDomain());
         record.setStyle(req.getStyle());
         record.setCreatedAt(new Date());
-
-        // 使用 MyBatis-Plus 的 save 方法（底层调用 mapper.insert），插入后 id 应被回写
         this.save(record);
-
         return record.getId();
     }
 

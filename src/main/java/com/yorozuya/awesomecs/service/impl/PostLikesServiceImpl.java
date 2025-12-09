@@ -64,7 +64,7 @@ public class PostLikesServiceImpl extends ServiceImpl<PostLikesMapper, PostLikes
             }
 
             rst.put("action", "cancelled");
-            rst.put("newLikeCount", likeCount);
+            rst.put("new_like_count", likeCount);
             return rst;
         } else {
             PostLikes entity = new PostLikes();

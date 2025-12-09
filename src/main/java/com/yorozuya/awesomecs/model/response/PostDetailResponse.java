@@ -17,6 +17,11 @@ public class PostDetailResponse {
     private String title;
     private String content;
     private String author;
+    @JsonProperty("author_name")
+    private String authorName;
+
+    @JsonProperty("author_avatar")
+    private String authorAvatar;
 
     @JsonProperty("create_time")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm")

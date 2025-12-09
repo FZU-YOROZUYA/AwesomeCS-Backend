@@ -12,7 +12,8 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConsultationMessageResponse {
-    private Long id;
+    @JsonProperty("msg_id")
+    private Long msgId;
 
     @JsonProperty("consultation_id")
     private Long consultationId;

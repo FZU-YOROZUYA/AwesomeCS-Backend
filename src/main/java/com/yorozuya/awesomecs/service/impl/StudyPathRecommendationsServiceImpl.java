@@ -51,26 +51,21 @@ public class StudyPathRecommendationsServiceImpl extends ServiceImpl<StudyPathRe
     @Override
     public Flux<String> getStudyPathRecommendations(Long userId, String text) {
         String sUserId = String.valueOf(userId);
-        List<Message> messages = chatMemory.get(sUserId);
-        if (messages.isEmpty()) {
-            String userInfo = "用户的 id 为 " + sUserId;
-            chatMemory.add(sUserId, new SystemMessage(SYS_PROMPT + userInfo));
-        }
+        initChatMemory(sUserId);
         ChatClient chatClient = ChatClient.builder(chatModel)
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).conversationId(sUserId).build())  // 添加 advisor 来自动处理内存
                 .build();
 
-        Flux<String> rst = chatClient
+        return chatClient
                 .prompt(new Prompt(
-                        chatMemory.get(sUserId)
+                        text
                 ))
                 .tools(tools)
                 .toolContext(Map.of("userId", sUserId))
                 .stream()
                 .content();
-
-        return rst;
     }
+
 
 
     @Override
@@ -80,25 +75,9 @@ public class StudyPathRecommendationsServiceImpl extends ServiceImpl<StudyPathRe
     }
 
     @Override
-    public List<String> getChatHistory(Long userId) {
-        String sUserId = String.valueOf(userId);
-        List<Message> messages = chatMemory.get(sUserId);
-        List<String> history = new ArrayList<>();
-        for (Message message : messages) {
-            if (!(message instanceof SystemMessage)) {
-                if (message instanceof UserMessage) {
-                    history.add("User: " + message.getText());
-                } else if (message instanceof AssistantMessage) {
-                    history.add("Assistant: " + message.getText());
-                }
-            }
-        }
-        return history;
-    }
-
-    @Override
     public List<ChatMessageResponse> getChatHistoryDetailed(Long userId) {
         String sUserId = String.valueOf(userId);
+        initChatMemory(sUserId);
         List<Message> messages = chatMemory.get(sUserId);
         List<ChatMessageResponse> history = new ArrayList<>();
         for (Message message : messages) {
@@ -111,6 +90,16 @@ public class StudyPathRecommendationsServiceImpl extends ServiceImpl<StudyPathRe
             }
         }
         return history;
+    }
+
+    private void initChatMemory(String userId) {
+        List<Message> messages = chatMemory.get(userId);
+        if (messages.isEmpty()) {
+            String userInfo = "用户的 id 为 " + userId;
+            chatMemory.add(userId, new SystemMessage(SYS_PROMPT + userInfo));
+            chatMemory.add(userId, new AssistantMessage("你好！我是你的学习路径规划师。"));
+        }
+        return;
     }
 
 }

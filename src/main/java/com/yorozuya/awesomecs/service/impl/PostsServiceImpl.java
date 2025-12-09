@@ -45,39 +45,30 @@ public class PostsServiceImpl extends ServiceImpl<PostsMapper, Posts>
             String tag) {
         int cur = (page == null || page <= 0) ? 1 : page;
         int sz = (size == null || size <= 0) ? 20 : size;
-        Page<Posts> pg = new Page<>(cur, sz);
-        LambdaQueryWrapper<Posts> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Posts::getStatus, 1);
-        if (keyword != null && !keyword.isEmpty()) {
-            String k = keyword.trim();
-            // keyword 同时搜索标题、内容、分类和 tags 字段（简单的字符串匹配）
-            wrapper.and(w -> w.like(Posts::getTitle, k)
-                    .or().like(Posts::getContent, k)
-                    .or().like(Posts::getCategory, k)
-                    .or().like(Posts::getTags, k));
-        }
-        // category 精确匹配
-        if (category != null && !category.isEmpty()) {
-            wrapper.eq(Posts::getCategory, category);
-        }
-        // tag 查询：利用 JSON_CONTAINS(tags, '"tag"')，MySQL 专有写法，使用 wrapper.apply
-        if (tag != null && !tag.isEmpty()) {
-            String normalized = tag.trim().toLowerCase();
-            wrapper.apply("JSON_CONTAINS(tags, '\"" + normalized + "\"')");
-        }
-        IPage<Posts> res = postsMapper.selectPage(pg, wrapper);
-        List<PostSummaryResponse> list = new ArrayList<>();
-        for (Posts p : res.getRecords()) {
-            PostSummaryResponse item = new PostSummaryResponse();
-            item.setId(p.getId());
-            item.setTitle(p.getTitle());
-            item.setSummary(p.getSummary());
-            item.setAuthor(String.valueOf(p.getUserId()));
-            item.setCreateTime(p.getCreatedAt());
-            item.setViewCount(p.getViewCount());
-            list.add(item);
-        }
-        return new PageResponse<>(list, res.getTotal());
+        int offset = (cur - 1) * sz;
+        List<PostSummaryResponse> list = postsMapper.selectPostSummaries(
+                (keyword == null ? null : keyword.trim()),
+                (category == null ? null : category.trim()),
+                (tag == null ? null : tag.trim()),
+                offset,
+                sz
+        );
+        Long total = postsMapper.selectPostSummariesCount(
+                (keyword == null ? null : keyword.trim()),
+                (category == null ? null : category.trim()),
+                (tag == null ? null : tag.trim())
+        );
+        return new PageResponse<>(list == null ? new ArrayList<>() : list, total == null ? 0L : total);
+    }
+
+    @Override
+    public String getPostsCount(String category) {
+        Long rst = postsMapper.selectPostSummariesCount(
+                null,
+                (category == null ? null : category.trim()),
+                null
+        );
+        return Long.toString(rst);
     }
 
     /**
@@ -105,9 +96,10 @@ public class PostsServiceImpl extends ServiceImpl<PostsMapper, Posts>
                                             .eq("id",p.get("p_id")));
             if(ps==null) continue;
             PostSummaryResponse item = new PostSummaryResponse();
-            item.setId(ps.getId());
+            item.setId(String.valueOf(p.get("id")));
             item.setTitle(ps.getTitle());
             item.setSummary(ps.getSummary());
+            item.setCategory(ps.getCategory());
             item.setAuthor(String.valueOf(ps.getUserId()));
             item.setCreateTime(ps.getCreatedAt());
             item.setViewCount(ps.getViewCount());
@@ -144,6 +136,17 @@ public class PostsServiceImpl extends ServiceImpl<PostsMapper, Posts>
             }
         } else {
             resp.setTags(new ArrayList<>());
+        }
+        // 使用连表查询获取作者昵称与头像（从 mapper 返回的 map 中读取）
+        try {
+            Map<String, Object> m = postsMapper.selectPostDetailMap(id);
+            if (m != null) {
+                Object an = m.get("author_name");
+                if (an != null) resp.setAuthorName(String.valueOf(an));
+                Object aa = m.get("author_avatar");
+                if (aa != null) resp.setAuthorAvatar(String.valueOf(aa));
+            }
+        } catch (Exception ignore) {
         }
         // like count: 统计 post_likes 表中的记录数
         int likeCount = Math.toIntExact(
@@ -219,32 +222,72 @@ public class PostsServiceImpl extends ServiceImpl<PostsMapper, Posts>
     public PageResponse<PostSummaryResponse> listUserLikedPosts(Long userId, Integer page, Integer size) {
         int cur = (page == null || page <= 0) ? 1 : page;
         int sz = (size == null || size <= 0) ? 20 : size;
-        Page<PostLikes> pg = new Page<>(cur, sz);
-        LambdaQueryWrapper<PostLikes> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(PostLikes::getUserId, userId);
-        IPage<PostLikes> res = postLikesMapper.selectPage(pg, wrapper);
-        List<Long> postIds = new ArrayList<>();
-        for (PostLikes pl : res.getRecords())
-            postIds.add(pl.getPostId());
-        if (postIds.isEmpty())
-            return new PageResponse<>(new ArrayList<>(), 0);
-        // 查询 posts
-        Page<Posts> postPage = new Page<>(cur, sz);
-        LambdaQueryWrapper<Posts> pw = new LambdaQueryWrapper<>();
-        pw.in(Posts::getId, postIds).eq(Posts::getStatus, 1);
-        IPage<Posts> postsRes = postsMapper.selectPage(postPage, pw);
-        List<PostSummaryResponse> list = new ArrayList<>();
-        for (Posts p2 : postsRes.getRecords()) {
-            PostSummaryResponse item = new PostSummaryResponse();
-            item.setId(p2.getId());
-            item.setTitle(p2.getTitle());
-            item.setSummary(p2.getSummary());
-            item.setAuthor(String.valueOf(p2.getUserId()));
-            item.setCreateTime(p2.getCreatedAt());
-            item.setViewCount(p2.getViewCount());
-            list.add(item);
+        int offset = (cur - 1) * sz;
+
+        List<PostSummaryResponse> list = postsMapper.selectUserLikedPostSummaries(userId, offset, sz);
+        Long total = postsMapper.selectUserLikedPostSummariesCount(userId);
+
+        return new PageResponse<>(list == null ? new ArrayList<>() : list, total == null ? 0L : total);
+    }
+
+    @Override
+    public PageResponse<PostSummaryResponse> listPostsByUser(Long userId, Integer page, Integer size, String keyword, String category, String tag) {
+        int cur = (page == null || page <= 0) ? 1 : page;
+        int sz = (size == null || size <= 0) ? 20 : size;
+        int offset = (cur - 1) * sz;
+        List<PostSummaryResponse> list = postsMapper.selectPostSummariesByUser(
+                userId,
+                (keyword == null ? null : keyword.trim()),
+                (category == null ? null : category.trim()),
+                (tag == null ? null : tag.trim()),
+                offset,
+                sz
+        );
+        Long total = postsMapper.selectPostSummariesByUserCount(
+                userId,
+                (keyword == null ? null : keyword.trim()),
+                (category == null ? null : category.trim()),
+                (tag == null ? null : tag.trim())
+        );
+        return new PageResponse<>(list == null ? new ArrayList<>() : list, total == null ? 0L : total);
+    }
+
+    @Override
+    public Integer getTotalLikesByUser(Long userId) {
+        if (userId == null) return 0;
+        // 查询该用户的所有文章 id
+        List<Posts> posts = postsMapper.selectList(new LambdaQueryWrapper<Posts>().select(Posts::getId).eq(Posts::getUserId, userId).eq(Posts::getStatus, 1));
+        if (posts == null || posts.isEmpty()) return 0;
+        List<Long> ids = new ArrayList<>();
+        for (Posts p : posts) ids.add(p.getId());
+        int cnt = Math.toIntExact(postLikesMapper.selectCount(new LambdaQueryWrapper<PostLikes>().in(PostLikes::getPostId, ids)));
+        return cnt;
+    }
+
+    @Override
+    public Long getTotalViewsByUser(Long userId) {
+        if (userId == null) return 0L;
+        // 使用聚合查询 sum(view_count)
+        QueryWrapper<Posts> qw = new QueryWrapper<>();
+        qw.select("COALESCE(SUM(view_count),0) AS total_views");
+        qw.eq("user_id", userId).eq("status", 1);
+        List<Map<String, Object>> res = postsMapper.selectMaps(qw);
+        if (res == null || res.isEmpty()) return 0L;
+        Object v = res.get(0).get("total_views");
+        if (v == null) return 0L;
+        if (v instanceof Number) return ((Number) v).longValue();
+        try {
+            return Long.parseLong(String.valueOf(v));
+        } catch (Exception ex) {
+            return 0L;
         }
-        return new PageResponse<>(list, postsRes.getTotal());
+    }
+
+    @Override
+    public Long getTotalPostsByUser(Long userId) {
+        if (userId == null) return 0L;
+        Long cnt = postsMapper.selectCount(new QueryWrapper<Posts>().eq("user_id", userId).eq("status", 1));
+        return cnt == null ? 0L : cnt;
     }
 
     private static String generateSummary(String content, int maxChars) {

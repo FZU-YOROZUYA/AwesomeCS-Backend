@@ -32,8 +32,8 @@ public class ConsultationWebSocketHandler extends TextWebSocketHandler {
 
     private final Gson gson = new Gson();
 
-    // 存储会话：consultationId -> (userId -> session)
-    private final Map<Long, Map<Long, WebSocketSession>> sessions = new ConcurrentHashMap<>();
+    // 存储用户会话：一个用户只允许一个 websocket 会话
+    private final Map<Long, WebSocketSession> userSessions = new ConcurrentHashMap<>();
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -42,24 +42,18 @@ public class ConsultationWebSocketHandler extends TextWebSocketHandler {
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Invalid token"));
         }
         String sid = (String)StpUtil.getLoginIdByToken(token);
-        Long userId = 0L;
+        long userId = 0L;
         if (sid == null || sid.isEmpty() || (userId = Long.parseLong(sid)) <= 0) {
             session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Invalid token"));
         }
-        Long consultationId = getConsultationIdFromSession(session);
-
-        if (consultationId == null) {
-            session.close(CloseStatus.BAD_DATA.withReason("Missing consultationId"));
-            return;
+        // 用户只允许一个 websocket 会话，如已有则关闭旧连接
+        WebSocketSession old = userSessions.put(userId, session);
+        if (old != null && old.isOpen() && old != session) {
+            try {
+                old.close(CloseStatus.NORMAL.withReason("Replaced by new session"));
+            } catch (Exception ignore) {
+            }
         }
-        // 验证用户是否参与此咨询
-        Consultations consultation = consultationsService.getById(consultationId);
-        if (consultation == null
-                || (!consultation.getSeekerId().equals(userId) && !consultation.getExpertId().equals(userId))) {
-            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Not authorized for this consultation"));
-            return;
-        }
-        sessions.computeIfAbsent(consultationId, k -> new ConcurrentHashMap<>()).put(userId, session);
     }
 
     @Override
@@ -76,45 +70,57 @@ public class ConsultationWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        Long consultationId = getConsultationIdFromSession(session);
+        // 解析消息体：必须包含 consultation_id, to_id, content
+        @SuppressWarnings("unchecked")
+        Map<String, Object> msgData = (Map<String, Object>) gson.fromJson(message.getPayload(), Map.class);
+        Long consultationId = toLong(msgData.get("consultation_id"));
+        Long toId = toLong(msgData.get("to_id"));
+        String content = (String) msgData.get("content");
 
-        if (consultationId == null) {
+        if (consultationId == null || toId == null || content == null || content.trim().isEmpty()) {
+            session.close(CloseStatus.BAD_DATA.withReason("Invalid message payload"));
             return;
         }
 
-        // 解析消息
-        @SuppressWarnings("unchecked")
-        Map<String, Object> msgData = (Map<String, Object>) gson.fromJson(message.getPayload(), Map.class);
-        String content = (String) msgData.get("content");
-        if (content == null || content.trim().isEmpty()) {
+        // 校验咨询存在且双方匹配
+        Consultations consultation = consultationsService.getById(consultationId);
+        if (consultation == null) {
+            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Consultation not found"));
+            return;
+        }
+        if (consultation.getStatus() != 1){
+            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Consultation not found"));
+            return;
+        }
+        boolean participantsMatch =
+                (consultation.getExpertId().equals(userId) && consultation.getSeekerId().equals(toId))
+                        || (consultation.getSeekerId().equals(userId) && consultation.getExpertId().equals(toId));
+        if (!participantsMatch) {
+            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Not authorized for this consultation"));
             return;
         }
 
         // 保存消息到数据库
-        // TODO: change to async or mq
         ConsultationMessages msg = new ConsultationMessages();
         msg.setConsultationId(consultationId);
         msg.setSenderId(userId);
         msg.setContent(content);
         consultationMessagesService.save(msg);
 
-        // 广播消息给咨询中的其他用户
-        Map<Long, WebSocketSession> consultationSessions = sessions.get(consultationId);
-        if (consultationSessions != null) {
-            Map<String, Object> broadcastMsg = Map.of(
-                    "senderId", userId,
+        // 转发给目标用户（如果在线）
+        WebSocketSession target = userSessions.get(toId);
+        if (target != null && target.isOpen()) {
+            Map<String, Object> forwardMsg = Map.of(
+                    "consultation_id", consultationId,
+                    "sender_id", userId,
+                    "to_id", toId,
                     "content", content,
-                    "sendTime", msg.getCreatedAt().toString());
-            String jsonMsg = gson.toJson(broadcastMsg);
-
-            for (Map.Entry<Long, WebSocketSession> entry : consultationSessions.entrySet()) {
-                if (!entry.getKey().equals(userId)) {
-                    try {
-                        entry.getValue().sendMessage(new TextMessage(jsonMsg));
-                    } catch (IOException e) {
-                        log.error("Failed to send message to user {}", entry.getKey(), e);
-                    }
-                }
+                    "send_time", msg.getCreatedAt() != null ? msg.getCreatedAt().toString() : new Date().toString()
+            );
+            try {
+                target.sendMessage(new TextMessage(gson.toJson(forwardMsg)));
+            } catch (IOException e) {
+                log.error("Failed to send message to user {}", toId, e);
             }
         }
     }
@@ -125,18 +131,7 @@ public class ConsultationWebSocketHandler extends TextWebSocketHandler {
         String token = getTokenFromSession(session);
         if (token != null && StpUtil.isLogin(token)) {
             Long userId = StpUtil.getLoginIdAsLong();
-            Long consultationId = getConsultationIdFromSession(session);
-
-            if (consultationId != null) {
-                Map<Long, WebSocketSession> consultationSessions = sessions.get(consultationId);
-                if (consultationSessions != null) {
-                    consultationSessions.remove(userId);
-                    if (consultationSessions.isEmpty()) {
-                        sessions.remove(consultationId);
-                    }
-                }
-                log.info("User {} disconnected from consultation {}", userId, consultationId);
-            }
+            userSessions.remove(userId, session);
         }
     }
 
@@ -154,16 +149,13 @@ public class ConsultationWebSocketHandler extends TextWebSocketHandler {
         return null;
     }
 
-    private Long getConsultationIdFromSession(WebSocketSession session) {
-        String path = session.getUri().getPath();
-        String[] parts = path.split("/");
-        if (parts.length >= 3 && "ws".equals(parts[1]) && "consultation".equals(parts[2])) {
-            try {
-                return Long.parseLong(parts[3]);
-            } catch (NumberFormatException e) {
-                return null;
-            }
+    private Long toLong(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof Number) return ((Number) obj).longValue();
+        try {
+            return Long.parseLong(String.valueOf(obj));
+        } catch (Exception e) {
+            return null;
         }
-        return null;
     }
 }
