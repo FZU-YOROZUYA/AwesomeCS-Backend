@@ -1,8 +1,7 @@
-create database `awesome_cs`;
+-- create database if not exists `awesome_cs`;
+-- use `awesome_cs`;
 
-use `awesome_cs`;
-
-create table comments
+create table if not exists comments
 (
     id         bigint unsigned                    not null
         primary key,

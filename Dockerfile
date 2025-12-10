@@ -6,6 +6,7 @@ WORKDIR /build
 
 # 预拉依赖，加快后续构建
 COPY pom.xml .
+COPY settings.xml /usr/share/maven/conf/settings.xml
 RUN mvn -B -ntp dependency:go-offline
 
 # 拷贝源码并打包
