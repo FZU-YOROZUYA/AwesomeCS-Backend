@@ -11,5 +11,5 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateConsultationRelationRequest {
     private Double price;
-    private String intro;
+    private String info;
 }

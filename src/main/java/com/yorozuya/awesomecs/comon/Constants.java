@@ -39,7 +39,8 @@ public class Constants {
 		CODE_ERROR("0016", "验证码错误"),
         ONLY_ONE_CONSULTATION("0017", "只能创建一个咨询"),
         AUDIO_CHANGE_SERVICE_FAIL("0018", "语音转化服务失败"),
-        PASSWORD_SAME_AS_OLD("0019","新密码不能与旧密码相同");
+        PASSWORD_SAME_AS_OLD("0019","新密码不能与旧密码相同"),
+        HAD_CONSULTATION("0020", "已有此咨询");
 
 		private final String code;
 		private final String info;

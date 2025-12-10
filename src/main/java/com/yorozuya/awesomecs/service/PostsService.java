@@ -19,6 +19,8 @@ public interface PostsService extends IService<Posts> {
     PageResponse<PostSummaryResponse> listPosts(Integer page, Integer size, String keyword, String category,
             String tag);
 
+    String getPostsCount(String category);
+
     PageResponse<PostSummaryResponse> listPopularPosts(Integer page, Integer siz);
 
     PostDetailResponse getPostDetail(Long id, Long currentUserId);
@@ -31,5 +33,24 @@ public interface PostsService extends IService<Posts> {
 
     // 列出用户点赞过的文章（分页）
     PageResponse<PostSummaryResponse> listUserLikedPosts(Long userId, Integer page, Integer size);
+
+        // 列出当前用户本人发布的文章（分页、支持筛选，与 listPosts 返回类型一致）
+        PageResponse<PostSummaryResponse> listPostsByUser(Long userId, Integer page, Integer size, String keyword, String category,
+            String tag);
+
+    /**
+     * 获取用户发布的所有文章的总点赞数
+     */
+    Integer getTotalLikesByUser(Long userId);
+
+    /**
+     * 获取用户发布的所有文章的总浏览量
+     */
+    Long getTotalViewsByUser(Long userId);
+
+    /**
+     * 获取用户发布的文章总数
+     */
+    Long getTotalPostsByUser(Long userId);
 
 }

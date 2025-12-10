@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.yorozuya.awesomecs.model.domain.ConsultationRelation;
 import com.yorozuya.awesomecs.model.request.CreateConsultationRelationRequest;
 import com.yorozuya.awesomecs.model.request.UpdateConsultationRelationRequest;
+import com.yorozuya.awesomecs.model.response.ConsultationRelationResponse;
+import com.yorozuya.awesomecs.model.response.PageResponse;
 
 import java.util.List;
 
@@ -13,5 +15,5 @@ public interface ConsultationRelationService extends IService<ConsultationRelati
 
     void updateRelation(Long id, Long userId, UpdateConsultationRelationRequest req);
 
-    List<ConsultationRelation> listByDomain(String domain);
+    PageResponse<ConsultationRelationResponse> listRelationsPaged(Integer page, Integer size, String domain, Long excludeUserId);
 }

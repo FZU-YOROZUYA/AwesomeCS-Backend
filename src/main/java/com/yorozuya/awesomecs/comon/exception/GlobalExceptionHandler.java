@@ -1,6 +1,7 @@
 package com.yorozuya.awesomecs.comon.exception;
 
 import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.SaTokenContextException;
 import com.yorozuya.awesomecs.comon.Constants;
 import com.yorozuya.awesomecs.comon.Result;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,10 @@ public class GlobalExceptionHandler {
 		log.error(e.getMessage());
 		e.printStackTrace();
 		return Result.buildResult(Constants.ResponseCode.UN_ERROR);
-
 	}
+
+    @ExceptionHandler(SaTokenContextException.class)
+    public String saTokenContextException(SaTokenContextException e) {
+        return "";
+    }
 }

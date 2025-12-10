@@ -19,12 +19,18 @@ public class ConsultationRelationResponse {
     @JsonProperty("user_id")
     private Long userId;
 
-    private BigDecimal price;
+    private String username;
 
-    private List<String> domains;
+    private Double price;
+
+    private String info;
+
 
     @JsonProperty("avatar_url")
     private String avatarUrl;
+
+    @JsonProperty("consultation_count")
+    private Integer consultationCount;
 
     @JsonProperty("created_at")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm")

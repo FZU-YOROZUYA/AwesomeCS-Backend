@@ -4,9 +4,11 @@ import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.annotation.SaIgnore;
 import cn.dev33.satoken.stp.StpUtil;
 import com.yorozuya.awesomecs.comon.Result;
-import com.yorozuya.awesomecs.comon.exception.BusinessException;
 import com.yorozuya.awesomecs.model.request.AvatarUpdateRequest;
 import com.yorozuya.awesomecs.model.request.ProfileUpdateRequest;
+import com.yorozuya.awesomecs.model.request.UpdatePasswordRequest;
+import com.yorozuya.awesomecs.model.response.UserProfileResponse;
+import com.yorozuya.awesomecs.model.domain.Users;
 import com.yorozuya.awesomecs.service.UsersService;
 
 import jakarta.annotation.Resource;
@@ -20,6 +22,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/user")
 @Slf4j
+@CrossOrigin
 public class UserController {
 
     @Resource
@@ -34,8 +37,7 @@ public class UserController {
             @RequestParam("target_job") String targetJob,
             @RequestParam("techs") List<String> techs,
             @RequestParam("bio") String bio) {
-        HashMap<String, String> rst = new HashMap<>();
-        long id = usersService.registerUser(
+        usersService.registerUser(
                 username,
                 password,
                 phone,
@@ -73,15 +75,67 @@ public class UserController {
         return Result.buildSuccessResult(null);
     }
 
+    @GetMapping("/profile")
+    @SaCheckLogin
+    public Result<UserProfileResponse> getProfile() {
+        Long id = StpUtil.getLoginIdAsLong();
+        Users user = usersService.getById(id);
+        if (user == null) {
+            return Result.buildErrorResult("用户不存在");
+        }
+
+        String nickname = user.getNickname();
+        String avatar = user.getAvatar();
+        String bio = user.getBio();
+
+        // userData 存储为 JSON 字符串（由 UsersServiceImpl 使用 Gson 写入），解析后提取 targetJob 和 techs
+        String targetJob = null;
+        java.util.List<String> techs = null;
+        Object ud = user.getUserData();
+        if (ud != null) {
+            try {
+                com.google.gson.Gson gson = new com.google.gson.Gson();
+                java.lang.reflect.Type mapType = new com.google.gson.reflect.TypeToken<java.util.Map<String, Object>>() {}.getType();
+                java.util.Map<String, Object> map = gson.fromJson(ud.toString(), mapType);
+                if (map != null) {
+                    Object tj = map.get("targetJob");
+                    if (tj != null) targetJob = tj.toString();
+                    Object t = map.get("techs");
+                    if (t instanceof java.util.List) {
+                        techs = new java.util.ArrayList<>();
+                        for (Object elt : (java.util.List<?>) t) {
+                            if (elt != null) techs.add(elt.toString());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // ignore parse errors, 保持 null
+            }
+        }
+
+        UserProfileResponse resp = new UserProfileResponse(id, nickname, avatar, bio, targetJob, techs);
+        return Result.buildSuccessResult(resp);
+    }
+
     @PostMapping("/password/update")
     @SaCheckLogin
     public Result<Object> updatePassword(
-            @RequestParam("oldPassword") String oldPassword,
-            @RequestParam("newPassword")String newPassword,
+            @RequestBody UpdatePasswordRequest updatePasswordRequest,
             @RequestHeader("Authorization") String token
         ) {
         Long userId = StpUtil.getLoginIdAsLong();
-        usersService.updatePwd(userId, oldPassword, newPassword);
+        usersService.updatePwd(
+                userId,
+                updatePasswordRequest.getOldPassword(),
+                updatePasswordRequest.getNewPassword());
         return Result.buildSuccessResult(null);
     }
+
+    @DeleteMapping
+    @SaCheckLogin
+    public Result<Object> logout(@RequestHeader("Authorization") String token) {
+        StpUtil.logout();
+        return Result.buildSuccessResult(null);
+    }
+
 }

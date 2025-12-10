@@ -24,8 +24,8 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/posts")
+@CrossOrigin
 public class PostsController {
-
     @Resource
     private PostsService postsService;
 
@@ -47,6 +47,16 @@ public class PostsController {
         PageResponse<PostSummaryResponse> resp = postsService.listPosts(page, size, keyword, category, tag);
         return Result.buildSuccessResult(resp);
     }
+
+    @GetMapping("/count")
+    @SaIgnore
+    public Result<String> getPostsCount(
+            @RequestParam(value = "category", required = false) String category
+    ){
+        String rst = postsService.getPostsCount(category);
+        return Result.buildSuccessResult(rst);
+    }
+
 //获取热门博客列表
     @GetMapping("/popular")
     @SaIgnore
@@ -58,24 +68,24 @@ public class PostsController {
         return Result.buildSuccessResult(resp);
     }
 //获取博客详情
-    @GetMapping("/{id}")
+    @GetMapping("/info/{id}")
     @SaIgnore
-    public Result<PostDetailResponse> getPost(@PathVariable("id") Long id) {
+    public Result<PostDetailResponse> getPost(@PathVariable("id") String id) {
         Long currentUserId = null;
         if (StpUtil.isLogin()) {
             currentUserId = StpUtil.getLoginIdAsLong();
         }
-        PostDetailResponse resp = postsService.getPostDetail(id, currentUserId);
+        PostDetailResponse resp = postsService.getPostDetail(Long.parseLong(id), currentUserId);
         return Result.buildSuccessResult(resp);
     }
 
 //    创建博客
     @PostMapping
     @SaCheckLogin
-    public Result<Object> createPost(@RequestBody CreatePostRequest req, @RequestHeader("Authorization") String token) {
+    public Result<String> createPost(@RequestBody CreatePostRequest req, @RequestHeader("Authorization") String token) {
         Long userId = StpUtil.getLoginIdAsLong();
         Long id = postsService.createPost(req, userId);
-        return Result.buildSuccessResult(id);
+        return Result.buildSuccessResult(Long.toString(id));
     }
 //    修改博客
     @PutMapping("/{id}")
@@ -111,8 +121,8 @@ public class PostsController {
         int likeCount = postLikesService.countLikes(id);
         boolean isLiked = userId != null && postLikesService.isLiked(userId, id);
         Map<String, Object> rst = new HashMap<>();
-        rst.put("likeCount", likeCount);
-        rst.put("isLiked", isLiked);
+        rst.put("like_count", likeCount);
+        rst.put("is_liked", isLiked);
         return Result.buildSuccessResult(rst);
     }
 
@@ -125,6 +135,54 @@ public class PostsController {
         Long userId = StpUtil.getLoginIdAsLong();
         PageResponse<PostSummaryResponse> resp = postsService.listUserLikedPosts(userId, page, size);
         return Result.buildSuccessResult(resp);
+    }
+
+    // 获取当前用户自己发布的博客列表（分页，返回类型与 listPosts 相同）
+    @GetMapping("/me")
+    @SaCheckLogin
+    public Result<PageResponse<PostSummaryResponse>> myPosts(
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "size", required = false) Integer size,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "tag", required = false) String tag,
+            @RequestHeader("Authorization") String token) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        PageResponse<PostSummaryResponse> resp = postsService.listPostsByUser(userId, page, size, keyword, category, tag);
+        return Result.buildSuccessResult(resp);
+    }
+
+    // 获取当前用户发布的博客总点赞数
+    @GetMapping("/me/likes-total")
+    @SaCheckLogin
+    public Result<Object> myTotalLikes(@RequestHeader("Authorization") String token) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        Integer totalLikes = postsService.getTotalLikesByUser(userId);
+        Map<String, Object> rst = new HashMap<>();
+        rst.put("totalLikes", totalLikes == null ? 0 : totalLikes);
+        return Result.buildSuccessResult(rst);
+    }
+
+    // 获取当前用户发布的博客总浏览量
+    @GetMapping("/me/views-total")
+    @SaCheckLogin
+    public Result<Object> myTotalViews(@RequestHeader("Authorization") String token) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        Long totalViews = postsService.getTotalViewsByUser(userId);
+        Map<String, Object> rst = new HashMap<>();
+        rst.put("totalViews", totalViews == null ? 0L : totalViews);
+        return Result.buildSuccessResult(rst);
+    }
+
+    // 获取当前用户发布的文章总数
+    @GetMapping("/me/count")
+    @SaCheckLogin
+    public Result<Object> myTotalPosts(@RequestHeader("Authorization") String token) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        Long totalPosts = postsService.getTotalPostsByUser(userId);
+        Map<String, Object> rst = new HashMap<>();
+        rst.put("totalPosts", totalPosts == null ? 0L : totalPosts);
+        return Result.buildSuccessResult(rst);
     }
 
     @PostMapping("/{postId}/comments")

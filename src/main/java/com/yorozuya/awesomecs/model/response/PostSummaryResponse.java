@@ -12,10 +12,15 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PostSummaryResponse {
-    private Long id;
+    private String id;
     private String title;
     private String summary;
-    private String author;
+    private String category;
+    private Long authorId;
+    private String author; 
+    private String authorAvatar;
+    private Integer likesCount;
+    private Integer commentsCount;
 
     @JsonProperty("create_time")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm")

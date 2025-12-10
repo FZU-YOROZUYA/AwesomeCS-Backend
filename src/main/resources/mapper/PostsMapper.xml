@@ -22,4 +22,223 @@
         id,user_id,category,tags,title,content,summary,
         status,view_count,created_at,updated_at
     </sql>
+
+    <!-- 连表查询：返回文章摘要信息，包含作者信息、点赞数、评论数 -->
+    <resultMap id="PostSummaryMap" type="com.yorozuya.awesomecs.model.response.PostSummaryResponse">
+        <id property="id" column="id" />
+        <result property="title" column="title" />
+        <result property="summary" column="summary" />
+        <result property="category" column="category" />
+        <result property="authorId" column="user_id" />
+        <result property="author" column="author" />
+        <result property="authorAvatar" column="author_avatar" />
+        <result property="likesCount" column="likes_count" />
+        <result property="viewCount" column="view_count" />
+        <result property="commentsCount" column="comments_count" />
+        <result property="createTime" column="created_at" />
+    </resultMap>
+
+    <!-- 支持关键字/分类/tag 过滤以及分页 -->
+    <select id="selectPostSummaries" resultMap="PostSummaryMap" parameterType="map">
+        SELECT
+            p.id,
+            p.title,
+            p.summary,
+            p.category,
+            p.user_id,
+            u.nickname AS author,
+            u.avatar AS author_avatar,
+            COALESCE(pl.likes_count, 0) AS likes_count,
+            p.view_count,
+            COALESCE(pc.comments_count, 0) AS comments_count,
+            p.created_at
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) AS likes_count
+            FROM post_likes
+            GROUP BY post_id
+        ) pl ON p.id = pl.post_id
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) AS comments_count
+            FROM comments
+            GROUP BY post_id
+        ) pc ON p.id = pc.post_id
+        <where>
+            <if test="category != null and category != ''">
+                AND p.category = #{category}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    p.title LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.content LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.category LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.tags LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="tag != null and tag != ''">
+                AND JSON_CONTAINS(p.tags, CONCAT('"', #{tag}, '"'))
+            </if>
+            AND p.status = 1
+        </where>
+        ORDER BY p.created_at DESC
+        <if test="offset != null and size != null">
+            LIMIT #{offset}, #{size}
+        </if>
+    </select>
+
+    <!-- 查询单篇文章详情，连表查询作者信息（返回 map，service 层负责转换） -->
+    <select id="selectPostDetailMap" resultType="map" parameterType="long">
+        SELECT
+            p.id,
+            p.title,
+            p.content,
+            p.summary,
+            p.user_id,
+            p.tags,
+            p.view_count,
+            p.created_at,
+            u.nickname AS author_name,
+            u.avatar AS author_avatar
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        WHERE p.id = #{id} AND p.status = 1
+        LIMIT 1
+    </select>
+
+    <select id="selectPostSummariesCount" resultType="long" parameterType="map">
+        SELECT COUNT(*) FROM posts p
+        <where>
+            <if test="category != null and category != ''">
+                AND p.category = #{category}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    p.title LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.content LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.category LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.tags LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="tag != null and tag != ''">
+                AND JSON_CONTAINS(p.tags, CONCAT('"', #{tag}, '"'))
+            </if>
+            AND p.status = 1
+        </where>
+    </select>
+
+    <!-- 按作者过滤的文章摘要查询（我的博客） -->
+    <select id="selectPostSummariesByUser" resultMap="PostSummaryMap" parameterType="map">
+        SELECT
+            p.id,
+            p.title,
+            p.summary,
+            p.category,
+            p.user_id,
+            u.nickname AS author,
+            u.avatar AS author_avatar,
+            COALESCE(pl.likes_count, 0) AS likes_count,
+            p.view_count,
+            COALESCE(pc.comments_count, 0) AS comments_count,
+            p.created_at
+        FROM posts p
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) AS likes_count
+            FROM post_likes
+            GROUP BY post_id
+        ) pl ON p.id = pl.post_id
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) AS comments_count
+            FROM comments
+            GROUP BY post_id
+        ) pc ON p.id = pc.post_id
+        <where>
+            <if test="category != null and category != ''">
+                AND p.category = #{category}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    p.title LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.content LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.category LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.tags LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="tag != null and tag != ''">
+                AND JSON_CONTAINS(p.tags, CONCAT('"', #{tag}, '"'))
+            </if>
+            AND p.status = 1
+            AND p.user_id = #{userId}
+        </where>
+        ORDER BY p.created_at DESC
+        <if test="offset != null and size != null">
+            LIMIT #{offset}, #{size}
+        </if>
+    </select>
+
+    <select id="selectPostSummariesByUserCount" resultType="long" parameterType="map">
+        SELECT COUNT(*) FROM posts p
+        <where>
+            <if test="category != null and category != ''">
+                AND p.category = #{category}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    p.title LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.content LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.category LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.tags LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="tag != null and tag != ''">
+                AND JSON_CONTAINS(p.tags, CONCAT('"', #{tag}, '"'))
+            </if>
+            AND p.status = 1
+            AND p.user_id = #{userId}
+        </where>
+    </select>
+
+    <!-- 查询用户点赞过的文章列表（分页） -->
+    <select id="selectUserLikedPostSummaries" resultMap="PostSummaryMap" parameterType="map">
+        SELECT
+            p.id,
+            p.title,
+            p.summary,
+            p.category,
+            p.user_id,
+            u.nickname AS author,
+            u.avatar AS author_avatar,
+            COALESCE(pl.likes_count, 0) AS likes_count,
+            p.view_count,
+            COALESCE(pc.comments_count, 0) AS comments_count,
+            p.created_at
+        FROM post_likes l
+        JOIN posts p ON l.post_id = p.id
+        LEFT JOIN users u ON p.user_id = u.id
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) AS likes_count
+            FROM post_likes
+            GROUP BY post_id
+        ) pl ON p.id = pl.post_id
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) AS comments_count
+            FROM comments
+            GROUP BY post_id
+        ) pc ON p.id = pc.post_id
+        WHERE l.user_id = #{userId}
+          AND p.status = 1
+        ORDER BY l.created_at DESC
+        <if test="offset != null and size != null">
+            LIMIT #{offset}, #{size}
+        </if>
+    </select>
+
+    <select id="selectUserLikedPostSummariesCount" resultType="long" parameterType="map">
+        SELECT COUNT(DISTINCT l.post_id)
+        FROM post_likes l
+        JOIN posts p ON l.post_id = p.id
+        WHERE l.user_id = #{userId}
+          AND p.status = 1
+    </select>
 </mapper>
