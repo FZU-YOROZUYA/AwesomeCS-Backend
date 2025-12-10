@@ -2,7 +2,7 @@ create database `awesome_cs`;
 
 use `awesome_cs`;
 
-create table awesome_cs.comments
+create table comments
 (
     id         bigint unsigned                    not null
         primary key,
@@ -14,7 +14,7 @@ create table awesome_cs.comments
 )
     comment '文章评论表';
 
-create table awesome_cs.consultation_messages
+create table consultation_messages
 (
     id              bigint unsigned auto_increment
         primary key,
@@ -27,9 +27,9 @@ create table awesome_cs.consultation_messages
     comment '咨询聊天消息（可选）';
 
 create index idx_messages_consultation
-    on awesome_cs.consultation_messages (consultation_id);
+    on consultation_messages (consultation_id);
 
-create table awesome_cs.consultation_payments
+create table consultation_payments
 (
     id              bigint unsigned auto_increment
         primary key,
@@ -45,9 +45,9 @@ create table awesome_cs.consultation_payments
     comment '咨询支付流水';
 
 create index idx_payment_consultation
-    on awesome_cs.consultation_payments (consultation_id);
+    on consultation_payments (consultation_id);
 
-create table awesome_cs.consultation_relation
+create table consultation_relation
 (
     id         bigint                              not null
         primary key,
@@ -57,7 +57,7 @@ create table awesome_cs.consultation_relation
     created_at timestamp default CURRENT_TIMESTAMP null
 );
 
-create table awesome_cs.consultations
+create table consultations
 (
     id         bigint unsigned                    not null
         primary key,
@@ -68,7 +68,7 @@ create table awesome_cs.consultations
 )
     comment '付费咨询表';
 
-create table awesome_cs.mock_interviews
+create table mock_interviews
 (
     id            bigint unsigned                    not null
         primary key,
@@ -80,7 +80,7 @@ create table awesome_cs.mock_interviews
 )
     comment '模拟面试记录表';
 
-create table awesome_cs.post_likes
+create table post_likes
 (
     id         bigint unsigned                    not null
         primary key,
@@ -90,7 +90,7 @@ create table awesome_cs.post_likes
 )
     comment '文章点赞表';
 
-create table awesome_cs.posts
+create table posts
 (
     id         bigint unsigned                        not null
         primary key,
@@ -101,13 +101,13 @@ create table awesome_cs.posts
     content    longtext                               not null,
     summary    varchar(500)                           null comment '文章摘要',
     status     tinyint      default 0                 null comment '状态：0-草稿，1-已发布，2-已删除',
-    view_count int unsigned default 0               null comment '浏览量',
+    view_count int unsigned default '0'               null comment '浏览量',
     created_at datetime     default CURRENT_TIMESTAMP null,
     updated_at datetime     default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP
 )
     comment '博客文章表';
 
-create table awesome_cs.study_path_recommendations
+create table study_path_recommendations
 (
     id         bigint unsigned                    not null
         primary key,
@@ -117,23 +117,23 @@ create table awesome_cs.study_path_recommendations
 )
     comment 'AI学习路径推荐表';
 
-create table awesome_cs.users
+create table users
 (
-    id          bigint unsigned                    not null
+    id         bigint unsigned                    not null
         primary key,
-    phone       varchar(20)                        not null comment '手机号（唯一标识）',
-    nickname    varchar(50)                        not null,
-    password    varchar(1024)                      not null,
-    avatar      varchar(255)                       null comment '用户头像URL',
-    bio         varchar(500)                       null comment '个人简介',
-    user_data   json                               null comment '存储兴趣、技术栈等扩展信息',
-    status      tinyint  default 1                 null comment '账户状态：1-正常，0-禁用',
-    created_at  datetime default CURRENT_TIMESTAMP null,
-    updated_at  datetime default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP,
-    column_name int                                null,
+    phone      varchar(20)                        not null comment '手机号（唯一标识）',
+    nickname   varchar(50)                        not null,
+    password   varchar(1024)                      not null,
+    avatar     varchar(255)                       null comment '用户头像URL',
+    bio        varchar(500)                       null comment '个人简介',
+    user_data  json                               null comment '存储兴趣、技术栈等扩展信息',
+    status     tinyint  default 1                 null comment '账户状态：1-正常，0-禁用',
+    created_at datetime default CURRENT_TIMESTAMP null,
+    updated_at datetime default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP,
     constraint nickname
         unique (nickname),
     constraint phone
         unique (phone)
 )
     comment '用户基础信息表';
+
