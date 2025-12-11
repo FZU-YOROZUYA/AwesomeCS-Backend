@@ -3,10 +3,14 @@ package com.yorozuya.awesomecs.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.yorozuya.awesomecs.comon.Constants;
+import com.yorozuya.awesomecs.comon.exception.BusinessException;
+import com.yorozuya.awesomecs.model.domain.Posts;
 import com.yorozuya.awesomecs.repository.mapper.CommentsMapper;
 import com.yorozuya.awesomecs.model.domain.Comments;
 import com.yorozuya.awesomecs.model.domain.Users;
 import com.yorozuya.awesomecs.model.response.CommentResponse;
+import com.yorozuya.awesomecs.repository.mapper.PostsMapper;
 import com.yorozuya.awesomecs.repository.mapper.UsersMapper;
 import com.yorozuya.awesomecs.service.CommentsService;
 import jakarta.annotation.Resource;
@@ -23,17 +27,30 @@ public class CommentsServiceImpl extends ServiceImpl<com.yorozuya.awesomecs.repo
         implements CommentsService {
 
     @Resource
+    private PostsMapper postsMapper;
+
+    @Resource
     private CommentsMapper commentsMapper;
 
     @Resource
     private UsersMapper usersMapper;
 
     @Override
-    public Comments createComment(Long postId, Long userId, Long parentId, String content) {
+    public Comments createComment(String postId, Long userId, String parentId, String content) {
+        Posts posts = postsMapper.selectById(postId);
+        if (posts == null) {
+            throw new BusinessException(Constants.ResponseCode.NO_OBJECT);
+        }
+        Comments pc = commentsMapper.selectById(parentId);
+        if (pc == null) {
+            throw new BusinessException(Constants.ResponseCode.NO_OBJECT);
+        }
+
+
         Comments comment = new Comments();
-        comment.setPostId(postId);
+        comment.setPostId(Long.parseLong(postId));
         comment.setUserId(userId);
-        comment.setParentId(parentId);
+        comment.setParentId(Long.parseLong(parentId) );
         comment.setContent(content);
         comment.setCreatedAt(new java.util.Date());
         this.save(comment);
@@ -73,9 +90,9 @@ public class CommentsServiceImpl extends ServiceImpl<com.yorozuya.awesomecs.repo
 
         List<CommentResponse> responses = topCommentsPage.getRecords().stream().map(c -> {
             CommentResponse cr = new CommentResponse();
-            cr.setId(c.getId());
-            cr.setPostId(c.getPostId());
-            cr.setUserId(c.getUserId());
+            cr.setId(c.getId().toString());
+            cr.setPostId(c.getPostId().toString());
+            cr.setUserId(c.getUserId().toString());
             cr.setContent(c.getContent());
             cr.setCreatedAt(c.getCreatedAt().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime());
             Users u = userMap.get(c.getUserId());
@@ -86,9 +103,9 @@ public class CommentsServiceImpl extends ServiceImpl<com.yorozuya.awesomecs.repo
             List<Comments> rs = repliesMap.getOrDefault(c.getId(), new ArrayList<>());
             List<CommentResponse> childResponses = rs.stream().map(rc -> {
                 CommentResponse crc = new CommentResponse();
-                crc.setId(rc.getId());
-                crc.setPostId(rc.getPostId());
-                crc.setUserId(rc.getUserId());
+                crc.setId(rc.getId().toString());
+                crc.setPostId(rc.getPostId().toString());
+                crc.setUserId(rc.getUserId().toString());
                 crc.setContent(rc.getContent());
                 crc.setCreatedAt(
                         rc.getCreatedAt().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime());

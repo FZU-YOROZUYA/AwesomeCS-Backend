@@ -15,6 +15,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +89,7 @@ public class UserController {
 
         // userData 存储为 JSON 字符串（由 UsersServiceImpl 使用 Gson 写入），解析后提取 targetJob 和 techs
         String targetJob = null;
-        java.util.List<String> techs = null;
+        List<String> techs = null;
         Object ud = user.getUserData();
         if (ud != null) {
             try {
@@ -99,11 +100,14 @@ public class UserController {
                     Object tj = map.get("targetJob");
                     if (tj != null) targetJob = tj.toString();
                     Object t = map.get("techs");
-                    if (t instanceof java.util.List) {
-                        techs = new java.util.ArrayList<>();
-                        for (Object elt : (java.util.List<?>) t) {
+                    if (t instanceof List) {
+                        techs = new ArrayList<>();
+                        for (Object elt : (List<?>) t) {
                             if (elt != null) techs.add(elt.toString());
                         }
+                    }else if (t instanceof String) {
+                        techs =  new ArrayList<>();
+                        techs.add((String) t);
                     }
                 }
             } catch (Exception e) {

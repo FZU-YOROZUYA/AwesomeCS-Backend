@@ -13,13 +13,14 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CommentResponse {
-    private Long id;
+    @JsonProperty("comment_id")
+    private String id;
 
     @JsonProperty("post_id")
-    private Long postId;
+    private String postId;
 
     @JsonProperty("user_id")
-    private Long userId;
+    private String userId;
 
     private String content;
 
@@ -28,9 +29,9 @@ public class CommentResponse {
     private LocalDateTime createdAt;
 
     @JsonProperty("user_name")
-    private String userName; // 可选，展示用户名
+    private String userName;
 
-    private String avatar; // 可选，展示用户头像
+    private String avatar;
 
     private List<CommentResponse> replies;
 }
