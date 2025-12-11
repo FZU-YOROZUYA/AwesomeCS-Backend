@@ -14,7 +14,6 @@ public interface UsersService extends IService<Users> {
         long registerUser(
                         String username,
                         String password,
-                        String phone,
                         String avatarUrl,
                         String targetJob,
                         List<String> techs,
