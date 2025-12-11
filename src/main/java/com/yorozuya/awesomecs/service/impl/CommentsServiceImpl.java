@@ -41,7 +41,7 @@ public class CommentsServiceImpl extends ServiceImpl<com.yorozuya.awesomecs.repo
         if (posts == null) {
             throw new BusinessException(Constants.ResponseCode.NO_OBJECT);
         }
-        if (parentId == null) {
+        if (parentId != null) {
             Comments pc = commentsMapper.selectById(parentId);
             if (pc == null) {
                 throw new BusinessException(Constants.ResponseCode.NO_OBJECT);
@@ -53,7 +53,11 @@ public class CommentsServiceImpl extends ServiceImpl<com.yorozuya.awesomecs.repo
         Comments comment = new Comments();
         comment.setPostId(Long.parseLong(postId));
         comment.setUserId(userId);
-        comment.setParentId(Long.parseLong(parentId) );
+        if (parentId == null) {
+            comment.setParentId(null);
+        }else {
+            comment.setParentId(Long.parseLong(parentId) );
+        }
         comment.setContent(content);
         comment.setCreatedAt(new java.util.Date());
         this.save(comment);
