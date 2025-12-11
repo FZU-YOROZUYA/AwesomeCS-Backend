@@ -32,7 +32,6 @@ public class UserController {
     @SaIgnore
     public Result<String> register(@RequestParam("username") String username,
             @RequestParam("password") String password,
-            @RequestParam("phone") String phone,
             @RequestParam("avatar") String avatarUrl,
             @RequestParam("target_job") String targetJob,
             @RequestParam("techs") List<String> techs,
@@ -40,7 +39,6 @@ public class UserController {
         usersService.registerUser(
                 username,
                 password,
-                phone,
                 avatarUrl,
                 targetJob,
                 techs,

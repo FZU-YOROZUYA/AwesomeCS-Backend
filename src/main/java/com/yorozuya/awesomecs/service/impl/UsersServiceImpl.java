@@ -28,7 +28,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users>
     private UsersMapper usersMapper;
 
     @Override
-    public long registerUser(String username, String password, String phone, String avatarUrl, String targetJob,
+    public long registerUser(String username, String password, String avatarUrl, String targetJob,
             List<String> techs, String bio) {
         long uid = IdUtil.getSnowflakeNextId();//雪花算法
         String afterPassword = DigestUtil.md5Hex(password);
@@ -38,7 +38,7 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users>
         String userInterestJson = new Gson().toJson(userInterest);
         boolean success = this.save(new Users(
                 uid,
-                phone,
+                "",
                 username,
                 afterPassword,
                 avatarUrl,
