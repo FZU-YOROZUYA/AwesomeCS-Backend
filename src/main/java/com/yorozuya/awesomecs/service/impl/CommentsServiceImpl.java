@@ -41,10 +41,13 @@ public class CommentsServiceImpl extends ServiceImpl<com.yorozuya.awesomecs.repo
         if (posts == null) {
             throw new BusinessException(Constants.ResponseCode.NO_OBJECT);
         }
-        Comments pc = commentsMapper.selectById(parentId);
-        if (pc == null) {
-            throw new BusinessException(Constants.ResponseCode.NO_OBJECT);
+        if (parentId == null) {
+            Comments pc = commentsMapper.selectById(parentId);
+            if (pc == null) {
+                throw new BusinessException(Constants.ResponseCode.NO_OBJECT);
+            }
         }
+
 
 
         Comments comment = new Comments();
