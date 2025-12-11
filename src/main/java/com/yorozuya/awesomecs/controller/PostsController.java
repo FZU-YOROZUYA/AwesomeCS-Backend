@@ -190,9 +190,8 @@ public class PostsController {
     public Result<Object> createComment(@PathVariable String postId, @RequestBody CreateCommentRequest req, @RequestHeader("Authorization") String token) {
         Long userId = StpUtil.getLoginIdAsLong();
         // parentId 可以通过 body 传递
-        long pid = Long.parseLong(postId);
-        Long createdId = commentsService.createComment(pid, userId, req.getParentId(), req.getContent()).getId();
-        return Result.buildSuccessResult(createdId);
+        Long createdId = commentsService.createComment(postId, userId, req.getParentId(), req.getContent()).getId();
+        return Result.buildSuccessResult(createdId.toString());
     }
 
     @GetMapping("/{postId}/comments")

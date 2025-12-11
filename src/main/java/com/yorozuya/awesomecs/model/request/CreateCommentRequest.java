@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateCommentRequest {
     @JsonProperty("parent_id")
-    private Long parentId; // 可为空，回复时传入父评论ID
+    private String parentId; // 可为空，回复时传入父评论ID
     private String content;
 }
